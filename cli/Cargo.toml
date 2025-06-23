@@ -10,6 +10,7 @@ readme.workspace = true
 [dependencies]
 clap = { workspace = true }
 libdrbug = { workspace = true }
+nix = { workspace = true }
 
 [dev-dependencies]
 rstest = { workspace = true }
