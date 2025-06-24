@@ -1,13 +1,4 @@
-use std::ffi::CString;
-
 use libdrbug::prelude::*;
-use nix::sys::ptrace;
-use nix::sys::wait::waitpid;
-use nix::unistd::{
-    ForkResult,
-    execvp,
-    fork,
-};
 
 use crate::repl;
 
@@ -19,20 +10,6 @@ pub struct Args {
 
 pub fn cmd(args: &Args) -> Empty {
     println!("running program at {}", args.path);
-    let path_cstring = CString::new(args.path.clone())?;
-
-    match unsafe { fork() }? {
-        ForkResult::Parent { child } => {
-            waitpid(child, None)?;
-            repl::start(child)?;
-        },
-        ForkResult::Child => {
-            ptrace::traceme()?;
-            // First argument is always the name of the program being run
-            // TODO: handle additional program arguments here after a -- separator
-            execvp(path_cstring.as_c_str(), &[&path_cstring])?;
-        },
-    }
-
-    Ok(())
+    let proc = Process::launch(args.path.clone())?;
+    repl::start(proc)
 }

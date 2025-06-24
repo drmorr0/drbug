@@ -1,11 +1,8 @@
 use libdrbug::prelude::*;
-use nix::sys::ptrace;
-use nix::sys::wait::waitpid;
-use nix::unistd::Pid;
 use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
 
-pub fn start(pid: Pid) -> Empty {
+pub fn start(mut proc: Process) -> Empty {
     let mut rl = DefaultEditor::new()?;
 
     loop {
@@ -15,7 +12,7 @@ pub fn start(pid: Pid) -> Empty {
                 let mut tokens = line.split(' ');
                 let command = tokens.next().unwrap();
                 match command {
-                    cmd if "continue".starts_with(cmd) => resume(pid)?,
+                    cmd if "continue".starts_with(cmd) => proc.resume()?,
                     _ => println!("unknown command: {command}"),
                 }
             },
@@ -33,11 +30,5 @@ pub fn start(pid: Pid) -> Empty {
         }
     }
 
-    Ok(())
-}
-
-fn resume(pid: Pid) -> Empty {
-    ptrace::cont(pid, None)?;
-    waitpid(pid, None)?;
     Ok(())
 }

@@ -1,7 +1,4 @@
 use libdrbug::prelude::*;
-use nix::sys::ptrace;
-use nix::sys::wait::waitpid;
-use nix::unistd::Pid;
 
 use crate::repl;
 
@@ -13,9 +10,7 @@ pub struct Args {
 
 pub fn cmd(args: &Args) -> Empty {
     println!("attaching to pid {}", args.pid);
-    let pid = Pid::from_raw(args.pid);
-    ptrace::attach(pid)?;
-    waitpid(pid, None)?;
+    let proc = Process::attach(args.pid)?;
 
-    repl::start(pid)
+    repl::start(proc)
 }
