@@ -11,6 +11,7 @@ readme.workspace = true
 clap = { workspace = true }
 libdrbug = { workspace = true }
 nix = { workspace = true }
+rustyline = "16.0.0"
 
 [dev-dependencies]
 rstest = { workspace = true }

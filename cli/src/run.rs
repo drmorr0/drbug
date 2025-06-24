@@ -9,6 +9,8 @@ use nix::unistd::{
     fork,
 };
 
+use crate::repl;
+
 #[derive(clap::Args)]
 pub struct Args {
     #[arg(help = "PID of process to attach to")]
@@ -30,5 +32,9 @@ pub fn cmd(args: &Args) -> Empty {
             execvp(path_cstring.as_c_str(), &[&path_cstring])?;
         },
     }
+
+    // exec _replaces_ the current process with the one being exec'ed, so if we get
+    // here we must be in the parent process.
+    repl::start()?;
     Ok(())
 }

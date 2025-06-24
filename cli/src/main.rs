@@ -1,4 +1,5 @@
 mod attach;
+mod repl;
 mod run;
 
 use clap::{
