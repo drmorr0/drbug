@@ -24,6 +24,7 @@ pub fn cmd(args: &Args) -> Empty {
     match unsafe { fork() }? {
         ForkResult::Parent { child } => {
             waitpid(child, None)?;
+            repl::start(child)?;
         },
         ForkResult::Child => {
             ptrace::traceme()?;
@@ -33,8 +34,5 @@ pub fn cmd(args: &Args) -> Empty {
         },
     }
 
-    // exec _replaces_ the current process with the one being exec'ed, so if we get
-    // here we must be in the parent process.
-    repl::start()?;
     Ok(())
 }

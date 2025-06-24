@@ -16,6 +16,6 @@ pub fn cmd(args: &Args) -> Empty {
     let pid = Pid::from_raw(args.pid);
     ptrace::attach(pid)?;
     waitpid(pid, None)?;
-    repl::start()?;
-    Ok(())
+
+    repl::start(pid)
 }
