@@ -6,7 +6,10 @@ use nix::sys::signal::{
     Signal,
     kill,
 };
-use nix::sys::wait::waitpid;
+use nix::sys::wait::{
+    WaitStatus,
+    waitpid,
+};
 use nix::unistd::{
     ForkResult,
     Pid,
@@ -57,9 +60,8 @@ impl Process {
         Ok(())
     }
 
-    pub fn wait_on_signal(&self) -> Empty {
-        waitpid(self.pid, None)?;
-        Ok(())
+    pub fn wait_on_signal(&self) -> anyhow::Result<WaitStatus> {
+        waitpid(self.pid, None).map_err(|e| e.into())
     }
 
     pub fn pid(&self) -> Pid {

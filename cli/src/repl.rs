@@ -12,7 +12,11 @@ pub fn start(mut proc: Process) -> Empty {
                 let mut tokens = line.split(' ');
                 let command = tokens.next().unwrap();
                 match command {
-                    cmd if "continue".starts_with(cmd) => proc.resume()?,
+                    cmd if "continue".starts_with(cmd) => {
+                        proc.resume()?;
+                        let status = proc.wait_on_signal()?;
+                        println!("Status: {status:?}");
+                    },
                     _ => println!("unknown command: {command}"),
                 }
             },
