@@ -1,0 +1,15 @@
+[package]
+name = "test-targets"
+version = "0.0.0"
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+readme.workspace = true
+publish = false
+
+[[bin]]
+name = "loop"
+path = "src/loop.rs"
+
+[dependencies]

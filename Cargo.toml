@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["cli", "libdrbug"]
+members = ["cli", "libdrbug", "test/targets"]
 
 [workspace.package]
 name = "drbug"

@@ -10,6 +10,6 @@ pub struct Args {
 
 pub fn cmd(args: &Args) -> Empty {
     println!("running program at {}", args.path);
-    let proc = Process::launch(args.path.clone())?;
+    let proc = Process::launch(&args.path)?;
     repl::start(proc)
 }
