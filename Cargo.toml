@@ -12,7 +12,10 @@ license = "MIT"
 readme = "README.md"
 
 [workspace.dependencies]
+anyhow = "1.0.98"
+assertables = "9.8.0"
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
-nix = { version = "0.30.1", features = ["process", "ptrace"] }
+nix = { version = "0.30.1", features = ["fs", "process", "ptrace"] }
 libdrbug = { path = "libdrbug" }
 rstest = "0.25.0"
+rustyline = "16.0.0"

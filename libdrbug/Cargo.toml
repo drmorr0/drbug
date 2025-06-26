@@ -8,8 +8,9 @@ license.workspace = true
 readme.workspace = true
 
 [dependencies]
-anyhow = "1.0.98"
+anyhow = { workspace = true }
 nix = { workspace = true }
 
 [dev-dependencies]
+assertables = { workspace = true }
 rstest = { workspace = true }
