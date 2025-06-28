@@ -1,5 +1,6 @@
 mod pipe;
 mod process;
+mod reg;
 
 pub type Empty = anyhow::Result<()>;
 
