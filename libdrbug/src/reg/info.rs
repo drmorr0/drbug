@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::mem::offset_of;
+use std::sync::LazyLock;
 
 use libc::{
     user,
@@ -6,6 +8,7 @@ use libc::{
     user_regs_struct,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RegisterType {
     General,
     SubGeneral,
@@ -13,6 +16,7 @@ pub enum RegisterType {
     Debug,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RegisterFormat {
     Uint,
     #[allow(dead_code)] // Not used in the debugger book
@@ -21,15 +25,19 @@ pub enum RegisterFormat {
     Vector,
 }
 
-#[allow(dead_code)]
 pub struct RegisterInfo {
-    id: RegisterId, // defined by the giant macro below
-    name: &'static str,
-    dwarf_id: Option<u32>,
-    size: usize,
-    offset: usize,
-    type_: RegisterType,
-    format: RegisterFormat,
+    pub id: RegisterId, // defined by the giant macro below
+    #[allow(dead_code)]
+    pub name: &'static str,
+    #[allow(dead_code)]
+    pub dwarf_id: Option<u32>,
+    #[allow(dead_code)]
+    pub size: usize,
+    pub offset: usize,
+    #[allow(dead_code)]
+    pub type_: RegisterType,
+    #[allow(dead_code)]
+    pub format: RegisterFormat,
 }
 
 macro_rules! gpr_offset {
@@ -69,6 +77,7 @@ macro_rules! define_registers {
     ($(($name:ident, $($args:tt),+): $reg_type:ident),* $(,)?) => {
         #[allow(non_camel_case_types)]
         #[allow(dead_code)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum RegisterId {
             $($name),*
         }
@@ -362,3 +371,37 @@ define_registers!(
     (dr6, 6): DEBUG,
     (dr7, 7): DEBUG,
 );
+
+pub const DEBUG_REGISTER_IDS: [RegisterId; 8] = [
+    RegisterId::dr0,
+    RegisterId::dr1,
+    RegisterId::dr2,
+    RegisterId::dr3,
+    RegisterId::dr4,
+    RegisterId::dr5,
+    RegisterId::dr6,
+    RegisterId::dr7,
+];
+
+pub(super) static REG_INFOS_BY_ID: LazyLock<HashMap<RegisterId, &RegisterInfo>> =
+    LazyLock::new(|| REGISTER_INFOS.iter().map(|rinfo| (rinfo.id, rinfo)).collect::<HashMap<_, _>>());
+
+#[allow(dead_code)]
+pub(super) static REG_INFOS_BY_NAME: LazyLock<HashMap<&'static str, &RegisterInfo>> = LazyLock::new(|| {
+    REGISTER_INFOS
+        .iter()
+        .map(|rinfo| (rinfo.name, rinfo))
+        .collect::<HashMap<_, _>>()
+});
+
+#[allow(dead_code)]
+pub(super) static REG_INFOS_BY_DWARF_ID: LazyLock<HashMap<u32, &RegisterInfo>> = LazyLock::new(|| {
+    REGISTER_INFOS
+        .iter()
+        .filter_map(|rinfo| rinfo.dwarf_id.map(|did| (did, rinfo)))
+        .collect::<HashMap<_, _>>()
+});
+
+pub fn register_info_by_id(id: &RegisterId) -> &'static RegisterInfo {
+    REG_INFOS_BY_ID.get(id).expect("invalid register id")
+}

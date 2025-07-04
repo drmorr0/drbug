@@ -7,7 +7,7 @@ name = "drbug"
 version = "0.1.0"
 edition = "2024"
 authors = ["David R. Morrison"]
-rust-version = "1.87"
+rust-version = "1.88"
 license = "MIT"
 readme = "README.md"
 
@@ -15,8 +15,8 @@ readme = "README.md"
 anyhow = "1.0.98"
 assertables = "9.8.0"
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
-nix = { version = "0.30.1", features = ["fs", "process", "ptrace"] }
-libc = "0.2.174"
+nix = { git = "https://github.com/drmorr0/nix", branch = "drmorr/getfpregs", features = ["fs", "process", "ptrace", "signal"] }
+libc = "0.2.172"
 libdrbug = { path = "libdrbug" }
 rstest = "0.25.0"
 rustyline = "16.0.0"

@@ -15,7 +15,7 @@ pub fn start(mut proc: Process) -> Empty {
                     cmd if "continue".starts_with(cmd) => {
                         proc.resume()?;
                         let status = proc.wait_on_signal()?;
-                        println!("Status: {status:?}");
+                        println!("process {}: {status}", proc.pid());
                     },
                     _ => println!("unknown command: {command}"),
                 }
