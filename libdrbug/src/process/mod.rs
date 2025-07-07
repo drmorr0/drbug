@@ -3,6 +3,7 @@ mod state;
 use std::ffi::CString;
 use std::io::Write;
 use std::ops::Drop;
+use std::os::fd::OwnedFd;
 
 use anyhow::bail;
 use nix::sys::ptrace;
@@ -14,6 +15,7 @@ use nix::sys::wait::waitpid;
 use nix::unistd::{
     ForkResult,
     Pid,
+    dup2_stdout,
     execvp,
     fork,
 };
@@ -21,10 +23,11 @@ use nix::unistd::{
 use self::state::ProcessState;
 use crate::prelude::*;
 use crate::reg::Registers;
-#[derive(Debug, Default)]
-struct WaitOptions {
-    terminate_on_end: bool,
-    attach: bool,
+
+#[derive(Default)]
+pub struct ProcessOptions {
+    pub start_unattached: bool, // use the negative here so the default does the right thing
+    pub stdout: Option<OwnedFd>,
 }
 
 #[derive(Debug)]
@@ -37,13 +40,13 @@ pub struct Process {
 }
 
 impl Process {
-    fn new_then_wait(pid: Pid, wait_opts: WaitOptions) -> anyhow::Result<Self> {
+    fn new_then_wait(pid: Pid, opts: ProcessOptions, terminate_on_end: bool) -> anyhow::Result<Self> {
         let mut proc = Process {
-            attached: wait_opts.attach,
+            attached: !opts.start_unattached,
             pid,
             registers: Registers::new(pid),
             state: ProcessState::Stopped { signal: None },
-            terminate_on_end: wait_opts.terminate_on_end,
+            terminate_on_end,
         };
         if proc.attached {
             proc.wait_on_signal()?;
@@ -54,51 +57,31 @@ impl Process {
     pub fn attach(pid_int: i32) -> anyhow::Result<Self> {
         let pid = Pid::from_raw(pid_int);
         ptrace::attach(pid)?;
-        Self::new_then_wait(pid, WaitOptions { attach: true, terminate_on_end: false })
+        Self::new_then_wait(pid, Default::default(), false)
     }
 
-    pub fn launch(path: &str) -> anyhow::Result<Self> {
-        Self::launch_maybe_attach(path, true)
-    }
-
-    pub fn pid(&self) -> Pid {
-        self.pid
-    }
-
-    pub fn resume(&mut self) -> Empty {
-        ptrace::cont(self.pid, None)?;
-        self.state = ProcessState::Running;
-        Ok(())
-    }
-
-    pub fn state(&self) -> ProcessState {
-        self.state
-    }
-
-    pub fn wait_on_signal(&mut self) -> anyhow::Result<ProcessState> {
-        let res = waitpid(self.pid, None)?;
-        self.state = res.into();
-
-        if self.attached && self.state.is_stopped() {
-            self.registers.read_all()?;
-        }
-        Ok(self.state)
-    }
-
-    fn launch_maybe_attach(path: &str, attach: bool) -> anyhow::Result<Self> {
+    pub fn launch(path: &str, opts: ProcessOptions) -> anyhow::Result<Self> {
         let mut channel = Pipe::new_exec_safe()?;
 
         let path_cstring = CString::new(path)?;
         let fork_res = unsafe { fork()? };
         let ForkResult::Parent { child } = fork_res else {
-            // The child process doesn't need the reader, so we close it
-            channel.close_reader();
-
             // in the child process, we can't just use `?`, since it won't get
             // communicated back to the parent; instead we use the channel.
             // Then we still return the error so the child process exits.
 
-            if attach {
+            // The child process doesn't need the reader, so we close it
+            channel.close_reader();
+
+            // Replace stdout of the child process so our debugger and/or test harness can read it
+            if let Some(fd) = opts.stdout {
+                if let Err(e) = dup2_stdout(fd) {
+                    let _ = write!(&mut channel, "dup2_stdout failed: {e:?}");
+                    return Err(e.into());
+                }
+            }
+
+            if !opts.start_unattached {
                 // ptrace::traceme sets up the "attach" in reverse, the child sets up tracing, and
                 // then Linux will pause the process on an exec call; this is why we don't need an
                 // explicit ptrace::attach call in this case
@@ -156,7 +139,39 @@ impl Process {
             bail!("child process failed with error: {}", std::str::from_utf8(&data)?);
         }
 
-        Self::new_then_wait(child, WaitOptions { attach, terminate_on_end: true })
+        Self::new_then_wait(child, opts, true)
+    }
+
+    pub fn resume(&mut self) -> Empty {
+        ptrace::cont(self.pid, None)?;
+        self.state = ProcessState::Running;
+        Ok(())
+    }
+
+    pub fn wait_on_signal(&mut self) -> anyhow::Result<ProcessState> {
+        let res = waitpid(self.pid, None)?;
+        self.state = res.into();
+
+        if self.attached && self.state.is_stopped() {
+            self.registers.read_all()?;
+        }
+        Ok(self.state)
+    }
+
+    pub fn get_registers(&self) -> &Registers {
+        &self.registers
+    }
+
+    pub fn get_registers_mut(&mut self) -> &mut Registers {
+        &mut self.registers
+    }
+
+    pub fn pid(&self) -> Pid {
+        self.pid
+    }
+
+    pub fn state(&self) -> ProcessState {
+        self.state
     }
 }
 
@@ -178,12 +193,5 @@ impl Drop for Process {
             let _ = kill(self.pid, Signal::SIGKILL);
             let _ = waitpid(self.pid, None);
         }
-    }
-}
-
-#[cfg(test)]
-impl Process {
-    pub(crate) fn launch_no_attach(path: &str) -> anyhow::Result<Self> {
-        Self::launch_maybe_attach(path, false)
     }
 }

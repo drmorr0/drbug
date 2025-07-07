@@ -10,7 +10,12 @@ pub type Byte128 = [u8; 16];
 pub mod prelude {
     pub use super::*;
     pub use crate::pipe::Pipe;
-    pub use crate::process::Process;
+    pub use crate::process::{
+        Process,
+        ProcessOptions,
+    };
+    pub use crate::reg::info::RegisterId;
+    pub use crate::reg::value::RegisterValue;
 }
 
 #[cfg(test)]

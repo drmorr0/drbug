@@ -50,6 +50,11 @@ impl Registers {
         Ok(())
     }
 
+    pub fn write_by_id(&mut self, id: RegisterId, val: RegisterValue) -> Empty {
+        let info = register_info_by_id(&id);
+        self.write_single(info, val)
+    }
+
     #[allow(dead_code)]
     fn read_single(&self, info: &RegisterInfo) -> anyhow::Result<RegisterValue> {
         // SAFETY: self.data is #[repr(C)], is not null, and valid for reads; it will not be
@@ -78,7 +83,6 @@ impl Registers {
         Ok(res)
     }
 
-    #[allow(dead_code)]
     fn write_single(&mut self, info: &RegisterInfo, val: RegisterValue) -> Empty {
         // SAFETY: self.data is #[repr(C)], is not null, and valid for reads; it will not be
         // read or mutated while in this block, and the total size is less than isize::MAX

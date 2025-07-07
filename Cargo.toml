@@ -1,9 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["cli", "libdrbug", "test/targets"]
+members = ["cli", "libdrbug", "test/rust"]
 
 [workspace.package]
-name = "drbug"
 version = "0.1.0"
 edition = "2024"
 authors = ["David R. Morrison"]

@@ -24,17 +24,25 @@ impl Pipe {
     }
 
     pub fn close_reader(&mut self) {
-        self.reader.take(); // take it out of the option and drop it, closing the file
+        self.take_reader(); // take it out of the option and drop it, closing the file
     }
 
     pub fn close_writer(&mut self) {
-        self.writer.take(); // take it out of the option and drop it, closing the file
+        self.take_writer(); // take it out of the option and drop it, closing the file
     }
 
     pub fn read(&mut self) -> anyhow::Result<Vec<u8>> {
         let mut buf = [0; 1024];
         let n = self.reader.as_ref().ok_or(anyhow!("reader closed"))?.read(&mut buf)?;
         Ok(buf[..n].to_owned())
+    }
+
+    pub fn take_reader(&mut self) -> Option<File> {
+        self.reader.take()
+    }
+
+    pub fn take_writer(&mut self) -> Option<File> {
+        self.writer.take()
     }
 
     fn make_pipe(close_on_exec: bool) -> anyhow::Result<Self> {
