@@ -12,3 +12,4 @@ rust-test-targets:
 asm-test-targets:
 	mkdir -p target/asm
 	gcc -o target/asm/reg_write test/asm/reg_write.s -pie
+	gcc -o target/asm/reg_read test/asm/reg_read.s -pie

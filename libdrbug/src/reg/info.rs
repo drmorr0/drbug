@@ -27,16 +27,11 @@ pub enum RegisterFormat {
 
 pub struct RegisterInfo {
     pub id: RegisterId, // defined by the giant macro below
-    #[allow(dead_code)]
     pub name: &'static str,
-    #[allow(dead_code)]
     pub dwarf_id: Option<u32>,
-    #[allow(dead_code)]
     pub size: usize,
     pub offset: usize,
-    #[allow(dead_code)]
     pub type_: RegisterType,
-    #[allow(dead_code)]
     pub format: RegisterFormat,
 }
 
@@ -76,13 +71,11 @@ macro_rules! fpr_size {
 macro_rules! define_registers {
     ($(($name:ident, $($args:tt),+): $reg_type:ident),* $(,)?) => {
         #[allow(non_camel_case_types)]
-        #[allow(dead_code)]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum RegisterId {
             $($name),*
         }
 
-        #[allow(dead_code)]
         pub const REGISTER_INFOS: &[RegisterInfo] = &[
             $(define_registers!(@generate_call $reg_type, $name, $($args),+),)*
         ];

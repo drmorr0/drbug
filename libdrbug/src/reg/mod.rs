@@ -50,12 +50,16 @@ impl Registers {
         Ok(())
     }
 
+    pub fn read_by_id(&self, id: RegisterId) -> anyhow::Result<RegisterValue> {
+        let info = register_info_by_id(&id);
+        self.read_single(info)
+    }
+
     pub fn write_by_id(&mut self, id: RegisterId, val: RegisterValue) -> Empty {
         let info = register_info_by_id(&id);
         self.write_single(info, val)
     }
 
-    #[allow(dead_code)]
     fn read_single(&self, info: &RegisterInfo) -> anyhow::Result<RegisterValue> {
         // SAFETY: self.data is #[repr(C)], is not null, and valid for reads; it will not be
         // mutated while in this block, and the total size is less than isize::MAX
@@ -98,7 +102,7 @@ impl Registers {
         }
     }
 
-    #[allow(dead_code)]
+    #[allow(dead_code)] // will use this in a later chapter
     fn commit_gprs(&self) -> Empty {
         ptrace::setregs(self.pid, self.data.regs).map_err(|e| e.into())
     }

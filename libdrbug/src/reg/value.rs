@@ -123,3 +123,11 @@ impl From<RegisterValue> for Byte128 {
         Byte128::from(&val)
     }
 }
+
+impl PartialEq for RegisterValue {
+    fn eq(&self, other: &Self) -> bool {
+        Into::<Byte128>::into(self) == Into::<Byte128>::into(other)
+    }
+}
+
+impl Eq for RegisterValue {}
