@@ -19,3 +19,4 @@ libc = "0.2.172"
 libdrbug = { path = "libdrbug" }
 rstest = "0.25.0"
 rustyline = "16.0.0"
+shlex = "1.3.0"

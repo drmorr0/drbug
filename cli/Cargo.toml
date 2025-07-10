@@ -8,10 +8,11 @@ license.workspace = true
 readme.workspace = true
 
 [dependencies]
+anyhow = { workspace = true }
 clap = { workspace = true }
 libdrbug = { workspace = true }
-nix = { workspace = true }
 rustyline = { workspace = true }
+shlex = { workspace = true }
 
 [dev-dependencies]
 rstest = { workspace = true }
