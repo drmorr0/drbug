@@ -11,10 +11,12 @@ use nix::unistd::Pid;
 
 use self::info::{
     DEBUG_REGISTER_IDS,
+    REGISTER_INFOS,
     RegisterFormat,
     RegisterInfo,
     RegisterType,
     register_info_by_id,
+    register_info_by_name,
 };
 use self::value::RegisterValue;
 use crate::prelude::*;
@@ -39,7 +41,47 @@ impl Registers {
         Registers { data: unsafe { data.assume_init() }, pid }
     }
 
-    pub fn read_all(&mut self) -> Empty {
+    // N.B. The read_* functions are reading the "cached" register values in the Registers.data
+    // field; they are _not_ reading from the actual registers via ptrace.  That is done in the
+    // `load_all` call below, which is executed whenever the process halts; however, there is a
+    // possibility of a state mismatch if we try to read from a register and somehow the "load_all"
+    // call hasn't been done yet.
+    pub fn read_group(
+        &self,
+        group: Option<RegisterType>,
+    ) -> anyhow::Result<Vec<(&'static str, Option<RegisterValue>)>> {
+        REGISTER_INFOS
+            .iter()
+            .filter_map(|info| {
+                if group.is_none_or(|g| info.type_ == g) {
+                    if info.format == RegisterFormat::LongDouble {
+                        Some(Ok((info.name, None)))
+                    } else {
+                        Some(self.read_single(info).map(|v| (info.name, Some(v))))
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect() // collect pulls a Vec of results into a result of vec
+    }
+
+    pub fn read_by_id(&self, id: RegisterId) -> anyhow::Result<RegisterValue> {
+        let info = register_info_by_id(&id);
+        self.read_single(info)
+    }
+
+    pub fn read_by_name(&self, name: &str) -> anyhow::Result<RegisterValue> {
+        let info = register_info_by_name(name)?;
+        self.read_single(info)
+    }
+
+    pub fn write_by_id(&mut self, id: RegisterId, val: RegisterValue) -> Empty {
+        let info = register_info_by_id(&id);
+        self.store_single(info, val)
+    }
+
+    pub(crate) fn load_all(&mut self) -> Empty {
         self.data.regs = ptrace::getregs(self.pid)?;
         self.data.i387 = ptrace::getfpregs(self.pid)?;
         for (i, dr) in DEBUG_REGISTER_IDS.iter().enumerate() {
@@ -48,16 +90,6 @@ impl Registers {
             self.data.u_debugreg[i] = val as u64;
         }
         Ok(())
-    }
-
-    pub fn read_by_id(&self, id: RegisterId) -> anyhow::Result<RegisterValue> {
-        let info = register_info_by_id(&id);
-        self.read_single(info)
-    }
-
-    pub fn write_by_id(&mut self, id: RegisterId, val: RegisterValue) -> Empty {
-        let info = register_info_by_id(&id);
-        self.write_single(info, val)
     }
 
     fn read_single(&self, info: &RegisterInfo) -> anyhow::Result<RegisterValue> {
@@ -87,7 +119,7 @@ impl Registers {
         Ok(res)
     }
 
-    fn write_single(&mut self, info: &RegisterInfo, val: RegisterValue) -> Empty {
+    fn store_single(&mut self, info: &RegisterInfo, val: RegisterValue) -> Empty {
         // SAFETY: self.data is #[repr(C)], is not null, and valid for reads; it will not be
         // read or mutated while in this block, and the total size is less than isize::MAX
         let bytes: &mut [u8] = as_bytes_mut(&mut self.data);

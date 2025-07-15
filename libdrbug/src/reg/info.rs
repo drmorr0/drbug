@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::mem::offset_of;
 use std::sync::LazyLock;
 
+use anyhow::anyhow;
 use libc::{
     user,
     user_fpregs_struct,
@@ -379,7 +380,6 @@ pub const DEBUG_REGISTER_IDS: [RegisterId; 8] = [
 pub(super) static REG_INFOS_BY_ID: LazyLock<HashMap<RegisterId, &RegisterInfo>> =
     LazyLock::new(|| REGISTER_INFOS.iter().map(|rinfo| (rinfo.id, rinfo)).collect::<HashMap<_, _>>());
 
-#[allow(dead_code)]
 pub(super) static REG_INFOS_BY_NAME: LazyLock<HashMap<&'static str, &RegisterInfo>> = LazyLock::new(|| {
     REGISTER_INFOS
         .iter()
@@ -397,4 +397,11 @@ pub(super) static REG_INFOS_BY_DWARF_ID: LazyLock<HashMap<u32, &RegisterInfo>> =
 
 pub fn register_info_by_id(id: &RegisterId) -> &'static RegisterInfo {
     REG_INFOS_BY_ID.get(id).expect("invalid register id")
+}
+
+pub fn register_info_by_name(name: &str) -> anyhow::Result<&'static RegisterInfo> {
+    REG_INFOS_BY_NAME
+        .get(name)
+        .copied()
+        .ok_or(anyhow!("invalid register id: {name}"))
 }

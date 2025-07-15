@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::bail;
 
 use crate::prelude::*;
@@ -49,6 +51,32 @@ impl RegisterValue {
         Ok(T::from_register_value(self)?.into())
     }
 }
+
+impl fmt::Display for RegisterValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RegisterValue::U8(val) => write!(f, "0x{val:02x}"),
+            RegisterValue::U16(val) => write!(f, "0x{val:04x}"),
+            RegisterValue::U32(val) => write!(f, "0x{val:08x}"),
+            RegisterValue::U64(val) => write!(f, "0x{val:016x}"),
+            RegisterValue::I8(val) => write!(f, "0x{val:02x}"),
+            RegisterValue::I16(val) => write!(f, "0x{val:04x}"),
+            RegisterValue::I32(val) => write!(f, "0x{val:08x}"),
+            RegisterValue::I64(val) => write!(f, "0x{val:016x}"),
+            RegisterValue::F32(val) => write!(f, "{val}"),
+            RegisterValue::F64(val) => write!(f, "{val}"),
+            RegisterValue::B64(val) => {
+                let bytes: Vec<String> = val.iter().map(|b| format!("0x{b:02x}")).collect();
+                write!(f, "[{}]", bytes.join(", "))
+            },
+            RegisterValue::B128(val) => {
+                let bytes: Vec<String> = val.iter().map(|b| format!("0x{b:02x}")).collect();
+                write!(f, "[{}]", bytes.join(", "))
+            },
+        }
+    }
+}
+
 
 pub trait RegisterValueTarget {
     fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue>;

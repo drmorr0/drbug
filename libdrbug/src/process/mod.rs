@@ -153,7 +153,7 @@ impl Process {
         self.state = res.into();
 
         if self.attached && self.state.is_stopped() {
-            self.registers.read_all()?;
+            self.registers.load_all()?;
         }
         Ok(self.state)
     }

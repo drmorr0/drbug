@@ -14,7 +14,11 @@ pub mod prelude {
         Process,
         ProcessOptions,
     };
-    pub use crate::reg::info::RegisterId;
+    pub use crate::reg::info::{
+        RegisterFormat,
+        RegisterId,
+        RegisterType,
+    };
     pub use crate::reg::value::RegisterValue;
 }
 
