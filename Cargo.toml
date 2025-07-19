@@ -13,10 +13,13 @@ readme = "README.md"
 [workspace.dependencies]
 anyhow = "1.0.98"
 assertables = "9.8.0"
+derive_more = { version = "2.0.1", features = ["full"] }
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
-nix = { git = "https://github.com/drmorr0/nix", branch = "drmorr/getfpregs", features = ["fs", "process", "ptrace", "signal"] }
 libc = "0.2.172"
 libdrbug = { path = "libdrbug" }
+nix = { git = "https://github.com/drmorr0/nix", branch = "drmorr/getfpregs", features = ["fs", "process", "ptrace", "signal"] }
+paste = "1.0.15"
 rstest = "0.25.0"
 rustyline = "16.0.0"
 shlex = "1.3.0"
+thiserror = "2.0.12"

@@ -5,7 +5,6 @@ use std::io::Write;
 use std::ops::Drop;
 use std::os::fd::OwnedFd;
 
-use anyhow::bail;
 use nix::sys::ptrace;
 use nix::sys::signal::{
     Signal,
@@ -21,8 +20,21 @@ use nix::unistd::{
 };
 
 use self::state::ProcessState;
-use crate::prelude::*;
+use crate::address::VirtAddr;
+use crate::pipe::Pipe;
 use crate::reg::Registers;
+use crate::reg::info::{
+    RegisterId,
+    register_info_by_id,
+};
+use crate::reg::value::RegisterValue;
+use crate::{
+    DrbugError,
+    DrbugResult,
+    Empty,
+    ptrace_error,
+    syscall_error,
+};
 
 #[derive(Default)]
 pub struct ProcessOptions {
@@ -40,7 +52,7 @@ pub struct Process {
 }
 
 impl Process {
-    fn new_then_wait(pid: Pid, opts: ProcessOptions, terminate_on_end: bool) -> anyhow::Result<Self> {
+    fn new_then_wait(pid: Pid, opts: ProcessOptions, terminate_on_end: bool) -> DrbugResult<Self> {
         let mut proc = Process {
             attached: !opts.start_unattached,
             pid,
@@ -54,17 +66,17 @@ impl Process {
         Ok(proc)
     }
 
-    pub fn attach(pid_int: i32) -> anyhow::Result<Self> {
+    pub fn attach(pid_int: i32) -> DrbugResult<Self> {
         let pid = Pid::from_raw(pid_int);
-        ptrace::attach(pid)?;
+        ptrace_error!(attach(pid))?;
         Self::new_then_wait(pid, Default::default(), false)
     }
 
-    pub fn launch(path: &str, opts: ProcessOptions) -> anyhow::Result<Self> {
+    pub fn launch(path: &str, opts: ProcessOptions) -> DrbugResult<Self> {
         let mut channel = Pipe::new_exec_safe()?;
 
         let path_cstring = CString::new(path)?;
-        let fork_res = unsafe { fork()? };
+        let fork_res = unsafe { syscall_error!(fork())? };
         let ForkResult::Parent { child } = fork_res else {
             // in the child process, we can't just use `?`, since it won't get
             // communicated back to the parent; instead we use the channel.
@@ -77,7 +89,7 @@ impl Process {
             if let Some(fd) = opts.stdout {
                 if let Err(e) = dup2_stdout(fd) {
                     let _ = write!(&mut channel, "dup2_stdout failed: {e:?}");
-                    return Err(e.into());
+                    return Err(DrbugError::SyscallFailed("dup2", e));
                 }
             }
 
@@ -87,7 +99,7 @@ impl Process {
                 // explicit ptrace::attach call in this case
                 if let Err(e) = ptrace::traceme() {
                     let _ = write!(&mut channel, "tracing failed: {e:?}");
-                    return Err(e.into());
+                    return Err(DrbugError::SyscallFailed("ptrace", e));
                 }
             }
 
@@ -103,7 +115,7 @@ impl Process {
             #[allow(irrefutable_let_patterns)]
             if let Err(e) = execvp(path_cstring.as_c_str(), &[&path_cstring]) {
                 let _ = write!(&mut channel, "exec failed: {e:?}");
-                return Err(e.into());
+                return Err(DrbugError::SyscallFailed("execvp", e));
             }
 
             // The channel writer is auto-closed here, either because we execvp'ed or because we
@@ -135,21 +147,29 @@ impl Process {
         channel.close_reader();
 
         if !data.is_empty() {
-            waitpid(child, None)?;
-            bail!("child process failed with error: {}", std::str::from_utf8(&data)?);
+            syscall_error!(waitpid(child, None))?;
+            return Err(DrbugError::ChildProcessFailed(String::from_utf8_lossy(&data).into()));
         }
 
         Self::new_then_wait(child, opts, true)
     }
 
+    pub fn get_pc(&self) -> DrbugResult<VirtAddr> {
+        let rip_info = register_info_by_id(&RegisterId::rip);
+        self.registers.read(rip_info).map(|v| match v {
+            RegisterValue::U64(rip) => VirtAddr(rip),
+            _ => panic!("should never happen"),
+        })
+    }
+
     pub fn resume(&mut self) -> Empty {
-        ptrace::cont(self.pid, None)?;
+        ptrace_error!(cont(self.pid, None))?;
         self.state = ProcessState::Running;
         Ok(())
     }
 
-    pub fn wait_on_signal(&mut self) -> anyhow::Result<ProcessState> {
-        let res = waitpid(self.pid, None)?;
+    pub fn wait_on_signal(&mut self) -> DrbugResult<ProcessState> {
+        let res = syscall_error!(waitpid(self.pid, None))?;
         self.state = res.into();
 
         if self.attached && self.state.is_stopped() {

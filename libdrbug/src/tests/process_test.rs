@@ -6,6 +6,11 @@ use nix::unistd::Pid;
 
 use super::*;
 use crate::process::ProcessOptions;
+use crate::{
+    DrbugError,
+    Empty,
+    syscall_error,
+};
 
 const LOOP_PATH: &str = "../target/debug/loop";
 
@@ -14,7 +19,7 @@ fn process_exists(pid: Pid) -> Empty {
     // this (there is no enum Signal variant for 0), so instead we send SIGUSR1 which isn't
     // technically correct (since default behaviour is to kill the process), but it works well enough,
     // since if it returns a success that means there was a process to kill.
-    kill(pid, Signal::SIGUSR1).map_err(|e| e.into())
+    syscall_error!(kill(pid, Signal::SIGUSR1))
 }
 
 fn get_process_status_char(pid: Pid) -> char {

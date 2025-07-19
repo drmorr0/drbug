@@ -4,22 +4,25 @@ use clap::{
 };
 use libdrbug::prelude::*;
 
+use crate::Empty;
+use crate::parsing::parse_for_register;
+
 #[derive(Subcommand)]
 pub(super) enum RegisterCommand {
     #[command(about = "read from the program registers")]
-    Read(RegisterReadArgs),
+    Read(RegReadArgs),
 
     #[command(about = "write to the program registers")]
-    Write(RegisterWriteArgs),
+    Write(RegWriteArgs),
 }
 
 #[derive(Args)]
-pub(super) struct RegisterReadArgs {
+pub(super) struct RegReadArgs {
     regs: Option<String>,
 }
 
-#[derive(Args)]
-pub(super) struct RegisterWriteArgs {
+#[derive(Args, Clone)]
+pub(super) struct RegWriteArgs {
     reg: String,
     value: String,
 }
@@ -31,18 +34,21 @@ pub(super) fn handle(command: &RegisterCommand, proc: &mut Process) -> Empty {
     }
 }
 
-fn handle_read(args: &RegisterReadArgs, proc: &mut Process) -> Empty {
+fn handle_read(args: &RegReadArgs, proc: &mut Process) -> Empty {
     let reg_values = match args.regs.as_deref() {
         Some("all") => proc.get_registers().read_group(None)?,
-        Some(name) => vec![(name, Some(proc.get_registers().read_by_name(name)?))],
+        Some(name) => {
+            let info = register_info_by_name(name)?;
+            vec![(name, Some(proc.get_registers().read(info)?))]
+        },
         None => proc.get_registers().read_group(Some(RegisterType::General))?,
     };
 
-    for (reg, val) in reg_values {
+    for (reg, value) in reg_values {
         if reg == "orig_rax" {
             continue;
         }
-        match val {
+        match value {
             Some(v) => println!("{reg}:\t{v}"),
             None => println!("{reg}:\tnone (unsupported)"),
         }
@@ -50,6 +56,9 @@ fn handle_read(args: &RegisterReadArgs, proc: &mut Process) -> Empty {
     Ok(())
 }
 
-fn handle_write(_args: &RegisterWriteArgs, _proc: &mut Process) -> Empty {
+fn handle_write(args: &RegWriteArgs, proc: &mut Process) -> Empty {
+    let info = register_info_by_name(&args.reg)?;
+    let value = parse_for_register(info, &args.value)?;
+    proc.get_registers_mut().write(info, value)?;
     Ok(())
 }

@@ -8,9 +8,10 @@ license.workspace = true
 readme.workspace = true
 
 [dependencies]
-anyhow = { workspace = true }
+derive_more = { workspace = true }
 libc = { workspace = true }
 nix = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 assertables = { workspace = true }

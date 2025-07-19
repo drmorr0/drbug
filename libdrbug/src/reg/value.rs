@@ -1,11 +1,14 @@
 use std::fmt;
 
-use anyhow::bail;
-
-use crate::prelude::*;
 use crate::util::copy_bytes;
+use crate::{
+    Byte64,
+    Byte128,
+    DrbugError,
+    DrbugResult,
+};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum RegisterValue {
     U8(u8),
     U16(u16),
@@ -39,16 +42,16 @@ impl RegisterValue {
         }
     }
 
+    pub fn cast_to_bytes128<T: RegisterValueTarget>(&self) -> DrbugResult<Byte128> {
+        Ok(T::from_register_value(self)?.into())
+    }
+
     pub fn is_floating_point(&self) -> bool {
         matches!(self, RegisterValue::F32(_) | RegisterValue::F64(_))
     }
 
     pub fn is_signed(&self) -> bool {
         matches!(self, RegisterValue::I8(_) | RegisterValue::I16(_) | RegisterValue::I32(_) | RegisterValue::I64(_))
-    }
-
-    pub fn cast_to_bytes128<T: RegisterValueTarget>(&self) -> anyhow::Result<Byte128> {
-        Ok(T::from_register_value(self)?.into())
     }
 }
 
@@ -79,48 +82,57 @@ impl fmt::Display for RegisterValue {
 
 
 pub trait RegisterValueTarget {
-    fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue>;
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue>;
+}
+
+impl RegisterValueTarget for i8 {
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue> {
+        match value {
+            RegisterValue::I8(v) => Ok(RegisterValue::I8(*v)),
+            x => Err(DrbugError::RegisterValueConversionFailed("i8", x.clone())),
+        }
+    }
 }
 
 impl RegisterValueTarget for i16 {
-    fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue> {
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue> {
         match value {
             RegisterValue::I8(v) => Ok(RegisterValue::I16(*v as i16)),
             RegisterValue::I16(v) => Ok(RegisterValue::I16(*v)),
-            x => bail!("invalid conversion to i16 from {x:?}"),
+            x => Err(DrbugError::RegisterValueConversionFailed("i16", x.clone())),
         }
     }
 }
 
 impl RegisterValueTarget for i32 {
-    fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue> {
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue> {
         match value {
             RegisterValue::I8(v) => Ok(RegisterValue::I32(*v as i32)),
             RegisterValue::I16(v) => Ok(RegisterValue::I32(*v as i32)),
             RegisterValue::I32(v) => Ok(RegisterValue::I32(*v)),
-            x => bail!("invalid conversion to i32 from {x:?}"),
+            x => Err(DrbugError::RegisterValueConversionFailed("i32", x.clone())),
         }
     }
 }
 
 impl RegisterValueTarget for i64 {
-    fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue> {
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue> {
         match value {
             RegisterValue::I8(v) => Ok(RegisterValue::I64(*v as i64)),
             RegisterValue::I16(v) => Ok(RegisterValue::I64(*v as i64)),
             RegisterValue::I32(v) => Ok(RegisterValue::I64(*v as i64)),
             RegisterValue::I64(v) => Ok(RegisterValue::I64(*v)),
-            x => bail!("invalid conversion to i64 from {x:?}"),
+            x => Err(DrbugError::RegisterValueConversionFailed("i64", x.clone())),
         }
     }
 }
 
 impl RegisterValueTarget for f64 {
-    fn from_register_value(value: &RegisterValue) -> anyhow::Result<RegisterValue> {
+    fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue> {
         match value {
             RegisterValue::F32(v) => Ok(RegisterValue::F64(*v as f64)),
             RegisterValue::F64(v) => Ok(RegisterValue::F64(*v)),
-            x => bail!("invalid conversion to f64 from {x:?}"),
+            x => Err(DrbugError::RegisterValueConversionFailed("f64", x.clone())),
         }
     }
 }

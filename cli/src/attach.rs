@@ -1,6 +1,7 @@
 use libdrbug::prelude::*;
 
-use crate::repl;
+use crate::Empty;
+use crate::repl::Repl;
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -10,7 +11,8 @@ pub struct Args {
 
 pub fn cmd(args: &Args) -> Empty {
     println!("attaching to pid {}", args.pid);
-    let proc = Process::attach(args.pid)?;
 
-    repl::start(proc)
+    let proc = Process::attach(args.pid)?;
+    let mut repl = Repl::new(proc)?;
+    repl.start()
 }

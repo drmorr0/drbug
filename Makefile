@@ -4,7 +4,7 @@ build:
 
 .PHONY: test rust-test-targets asm-test-targets
 test: rust-test-targets asm-test-targets
-	cargo test
+	cargo nextest run
 
 rust-test-targets:
 	cargo build -p test-targets

@@ -11,8 +11,10 @@ readme.workspace = true
 anyhow = { workspace = true }
 clap = { workspace = true }
 libdrbug = { workspace = true }
+paste = { workspace = true }
 rustyline = { workspace = true }
 shlex = { workspace = true }
 
 [dev-dependencies]
+assertables = { workspace = true }
 rstest = { workspace = true }

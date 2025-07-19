@@ -2,11 +2,15 @@ use std::collections::HashMap;
 use std::mem::offset_of;
 use std::sync::LazyLock;
 
-use anyhow::anyhow;
 use libc::{
     user,
     user_fpregs_struct,
     user_regs_struct,
+};
+
+use crate::{
+    DrbugError,
+    DrbugResult,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,11 +33,13 @@ pub enum RegisterFormat {
 pub struct RegisterInfo {
     pub id: RegisterId, // defined by the giant macro below
     pub name: &'static str,
+
     pub dwarf_id: Option<u32>,
     pub size: usize,
-    pub offset: usize,
     pub type_: RegisterType,
     pub format: RegisterFormat,
+
+    pub(crate) offset: usize,
 }
 
 macro_rules! gpr_offset {
@@ -399,9 +405,9 @@ pub fn register_info_by_id(id: &RegisterId) -> &'static RegisterInfo {
     REG_INFOS_BY_ID.get(id).expect("invalid register id")
 }
 
-pub fn register_info_by_name(name: &str) -> anyhow::Result<&'static RegisterInfo> {
+pub fn register_info_by_name(name: &str) -> DrbugResult<&'static RegisterInfo> {
     REG_INFOS_BY_NAME
         .get(name)
         .copied()
-        .ok_or(anyhow!("invalid register id: {name}"))
+        .ok_or_else(|| DrbugError::InvalidRegisterName(name.into()))
 }

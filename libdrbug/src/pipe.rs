@@ -5,9 +5,14 @@ use std::io::{
     Write,
 };
 
-use anyhow::anyhow;
 use nix::fcntl::OFlag;
 use nix::unistd::pipe2;
+
+use crate::{
+    DrbugError,
+    DrbugResult,
+    syscall_error,
+};
 
 pub struct Pipe {
     reader: Option<File>,
@@ -15,11 +20,7 @@ pub struct Pipe {
 }
 
 impl Pipe {
-    pub fn new() -> anyhow::Result<Self> {
-        Self::make_pipe(false)
-    }
-
-    pub fn new_exec_safe() -> anyhow::Result<Self> {
+    pub fn new_exec_safe() -> DrbugResult<Self> {
         Self::make_pipe(true)
     }
 
@@ -31,9 +32,9 @@ impl Pipe {
         self.take_writer(); // take it out of the option and drop it, closing the file
     }
 
-    pub fn read(&mut self) -> anyhow::Result<Vec<u8>> {
+    pub fn read(&mut self) -> DrbugResult<Vec<u8>> {
         let mut buf = [0; 1024];
-        let n = self.reader.as_ref().ok_or(anyhow!("reader closed"))?.read(&mut buf)?;
+        let n = self.reader.as_ref().ok_or(DrbugError::PipeClosed)?.read(&mut buf)?;
         Ok(buf[..n].to_owned())
     }
 
@@ -45,9 +46,9 @@ impl Pipe {
         self.writer.take()
     }
 
-    fn make_pipe(close_on_exec: bool) -> anyhow::Result<Self> {
+    fn make_pipe(close_on_exec: bool) -> DrbugResult<Self> {
         let flags = if close_on_exec { OFlag::O_CLOEXEC } else { OFlag::empty() };
-        let (read_fd, write_fd) = pipe2(flags)?;
+        let (read_fd, write_fd) = syscall_error!(pipe2(flags))?;
         Ok(Pipe {
             reader: Some(read_fd.into()),
             writer: Some(write_fd.into()),

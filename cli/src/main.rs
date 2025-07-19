@@ -1,4 +1,5 @@
 mod attach;
+mod parsing;
 mod repl;
 mod run;
 
@@ -7,7 +8,8 @@ use clap::{
     Subcommand,
     crate_version,
 };
-use libdrbug::prelude::*;
+
+pub type Empty = anyhow::Result<()>;
 
 #[derive(Parser)]
 #[command(about = "x86_64 debugger written in Rust", version, propagate_version = true)]

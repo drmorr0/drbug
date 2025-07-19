@@ -1,6 +1,11 @@
 use std::str::from_utf8;
 
 use super::*;
+use crate::pipe::Pipe;
+use crate::reg::info::{
+    RegisterId,
+    register_info_by_id,
+};
 
 const WRITE_TEST_BINARY: &str = "../target/asm/reg_write";
 const READ_TEST_BINARY: &str = "../target/asm/reg_read";
@@ -26,7 +31,8 @@ fn test_write_registers() {
     // We use these individual blocks to drop the mutable borrows between tests.
     {
         let regs = proc.get_registers_mut();
-        regs.write_by_id(RegisterId::rsi, RegisterValue::U64(0xcafecafe)).unwrap();
+        let info = register_info_by_id(&RegisterId::rsi);
+        regs.write(info, RegisterValue::U64(0xcafecafe)).unwrap();
         proc.resume().unwrap();
         proc.wait_on_signal().unwrap();
 
@@ -37,7 +43,8 @@ fn test_write_registers() {
 
     {
         let regs = proc.get_registers_mut();
-        regs.write_by_id(RegisterId::mm0, RegisterValue::U64(0xba5eba11)).unwrap();
+        let info = register_info_by_id(&RegisterId::mm0);
+        regs.write(info, RegisterValue::U64(0xba5eba11)).unwrap();
         proc.resume().unwrap();
         proc.wait_on_signal().unwrap();
 
@@ -47,7 +54,8 @@ fn test_write_registers() {
 
     {
         let regs = proc.get_registers_mut();
-        regs.write_by_id(RegisterId::xmm0, RegisterValue::F64(42.24)).unwrap();
+        let info = register_info_by_id(&RegisterId::xmm0);
+        regs.write(info, RegisterValue::F64(42.24)).unwrap();
         proc.resume().unwrap();
         proc.wait_on_signal().unwrap();
 
@@ -79,7 +87,8 @@ fn test_read_registers() {
         proc.wait_on_signal().unwrap();
 
         let regs = proc.get_registers();
-        let val = regs.read_by_id(RegisterId::r13).unwrap();
+        let info = register_info_by_id(&RegisterId::r13);
+        let val = regs.read(info).unwrap();
         assert_eq!(val, RegisterValue::U64(0xcafecafe));
     }
 
@@ -88,7 +97,8 @@ fn test_read_registers() {
         proc.wait_on_signal().unwrap();
 
         let regs = proc.get_registers();
-        let val = regs.read_by_id(RegisterId::r13b).unwrap();
+        let info = register_info_by_id(&RegisterId::r13b);
+        let val = regs.read(info).unwrap();
         assert_eq!(val, RegisterValue::U8(42));
     }
 
@@ -97,7 +107,8 @@ fn test_read_registers() {
         proc.wait_on_signal().unwrap();
 
         let regs = proc.get_registers();
-        let val = regs.read_by_id(RegisterId::mm0).unwrap();
+        let info = register_info_by_id(&RegisterId::mm0);
+        let val = regs.read(info).unwrap();
         assert_eq!(val, RegisterValue::B64([0x11, 0xba, 0x5e, 0xba, 0x11, 0xba, 0x5e, 0xba]));
     }
 
@@ -106,7 +117,8 @@ fn test_read_registers() {
         proc.wait_on_signal().unwrap();
 
         let regs = proc.get_registers();
-        let val = regs.read_by_id(RegisterId::xmm0).unwrap();
+        let info = register_info_by_id(&RegisterId::xmm0);
+        let val = regs.read(info).unwrap();
         assert_eq!(val, RegisterValue::F64(64.125));
     }
 
