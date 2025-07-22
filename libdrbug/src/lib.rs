@@ -1,11 +1,12 @@
 mod address;
-mod errors;
+mod breakpoint;
+mod error;
 mod pipe;
 mod process;
-mod reg;
+mod register;
 mod util;
 
-pub use crate::errors::*;
+pub use crate::error::*;
 
 type Empty = DrbugResult<()>;
 type Byte64 = [u8; 8];
@@ -17,13 +18,13 @@ pub mod prelude {
         Process,
         ProcessOptions,
     };
-    pub use crate::reg::info::{
+    pub use crate::register::info::{
         RegisterFormat,
         RegisterInfo,
         RegisterType,
         register_info_by_name,
     };
-    pub use crate::reg::value::RegisterValue;
+    pub use crate::register::value::RegisterValue;
 }
 
 #[cfg(test)]

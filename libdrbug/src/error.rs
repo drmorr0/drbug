@@ -1,11 +1,15 @@
 use thiserror::Error;
 
-use crate::reg::value::RegisterValue;
+use crate::address::VirtAddr;
+use crate::register::value::RegisterValue;
 
 pub type DrbugResult<T> = Result<T, DrbugError>;
 
 #[derive(Debug, Error)]
 pub enum DrbugError {
+    #[error("breakpoint site {0} exists at address: {1}")]
+    BreakpointSiteExists(usize, VirtAddr),
+
     #[error("conversion from byte slice failed: {0}")]
     ByteSliceConversionError(#[from] std::array::TryFromSliceError),
 

@@ -2,13 +2,10 @@ use std::str::from_utf8;
 
 use super::*;
 use crate::pipe::Pipe;
-use crate::reg::info::{
+use crate::register::info::{
     RegisterId,
     register_info_by_id,
 };
-
-const WRITE_TEST_BINARY: &str = "../target/asm/reg_write";
-const READ_TEST_BINARY: &str = "../target/asm/reg_read";
 
 #[rstest]
 fn test_write_registers() {

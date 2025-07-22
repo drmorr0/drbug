@@ -12,8 +12,6 @@ use crate::{
     syscall_error,
 };
 
-const LOOP_PATH: &str = "../target/debug/loop";
-
 fn process_exists(pid: Pid) -> Empty {
     // In the book we send signal 0 to kill, which does nothing, but `nix::kill` doesn't support
     // this (there is no enum Signal variant for 0), so instead we send SIGUSR1 which isn't
@@ -44,7 +42,7 @@ fn test_attach_success() {
 
 #[rstest]
 fn test_attach_invalid_pid() {
-    assert_err!(Process::attach(0));
+    assert_matches!(Process::attach(0), Err(DrbugError::SyscallFailed(..)));
 }
 
 #[rstest]
@@ -55,7 +53,7 @@ fn test_launch_success() {
 
 #[rstest]
 fn test_launch_no_such_program() {
-    assert_err!(Process::launch("deez", Default::default()));
+    assert_matches!(Process::launch("deez", Default::default()), Err(DrbugError::ChildProcessFailed(..)));
 }
 
 #[rstest]

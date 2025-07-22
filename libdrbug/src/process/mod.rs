@@ -21,13 +21,18 @@ use nix::unistd::{
 
 use self::state::ProcessState;
 use crate::address::VirtAddr;
+use crate::breakpoint::{
+    BreakList,
+    Breakable,
+    BreakpointSite,
+};
 use crate::pipe::Pipe;
-use crate::reg::Registers;
-use crate::reg::info::{
+use crate::register::Registers;
+use crate::register::info::{
     RegisterId,
     register_info_by_id,
 };
-use crate::reg::value::RegisterValue;
+use crate::register::value::RegisterValue;
 use crate::{
     DrbugError,
     DrbugResult,
@@ -45,6 +50,7 @@ pub struct ProcessOptions {
 #[derive(Debug)]
 pub struct Process {
     attached: bool,
+    breakpoint_sites: BreakList<BreakpointSite>,
     pid: Pid,
     registers: Registers,
     state: ProcessState,
@@ -55,6 +61,7 @@ impl Process {
     fn new_then_wait(pid: Pid, opts: ProcessOptions, terminate_on_end: bool) -> DrbugResult<Self> {
         let mut proc = Process {
             attached: !opts.start_unattached,
+            breakpoint_sites: BreakList::new(),
             pid,
             registers: Registers::new(pid),
             state: ProcessState::Stopped { signal: None },
@@ -152,6 +159,24 @@ impl Process {
         }
 
         Self::new_then_wait(child, opts, true)
+    }
+
+    pub fn breakpoint_sites(&self) -> &BreakList<BreakpointSite> {
+        &self.breakpoint_sites
+    }
+
+    pub fn breakpoint_sites_mut(&mut self) -> &mut BreakList<BreakpointSite> {
+        &mut self.breakpoint_sites
+    }
+
+    pub fn create_breakpoint_site(&mut self, addr: VirtAddr) -> DrbugResult<BreakpointSite> {
+        if let Some(site) = self.breakpoint_sites.get_by_addr(&addr) {
+            return Err(DrbugError::BreakpointSiteExists(site.id(), addr));
+        }
+
+        let site = BreakpointSite::new(addr);
+        self.breakpoint_sites.add(site.clone());
+        Ok(site)
     }
 
     pub fn get_pc(&self) -> DrbugResult<VirtAddr> {
