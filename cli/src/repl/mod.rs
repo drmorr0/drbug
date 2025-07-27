@@ -1,3 +1,4 @@
+mod breakpoint;
 mod commands;
 mod register;
 
@@ -53,6 +54,7 @@ impl Repl {
         let root = DrbRootCommand::try_parse_from(tokens)?;
 
         match &root.command {
+            ReplCommand::Breakpoint(cmd) => breakpoint::handle(cmd, &mut self.proc)?,
             ReplCommand::Continue => {
                 self.proc.resume()?;
                 let status = self.proc.wait_on_signal()?;

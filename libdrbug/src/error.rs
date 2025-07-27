@@ -34,6 +34,9 @@ pub enum DrbugError {
     #[error("long double (f80) type not currently supported")]
     LongDoubleUnsupported,
 
+    #[error("parse error: {0}")]
+    ParseError(#[from] std::num::ParseIntError),
+
     #[error("pipe closed")]
     PipeClosed,
 

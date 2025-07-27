@@ -9,10 +9,10 @@ use crate::parsing::parse_for_register;
 
 #[derive(Subcommand)]
 pub(super) enum RegisterCommand {
-    #[command(about = "read from the program registers")]
+    #[command(about = "read from the program registers", visible_aliases = &["r"])]
     Read(RegReadArgs),
 
-    #[command(about = "write to the program registers")]
+    #[command(about = "write to the program registers", visible_aliases = &["w"])]
     Write(RegWriteArgs),
 }
 

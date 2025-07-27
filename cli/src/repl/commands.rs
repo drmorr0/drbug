@@ -3,6 +3,7 @@ use clap::{
     Subcommand,
 };
 
+use super::breakpoint::*;
 use super::register::*;
 
 #[derive(Parser)]
@@ -19,6 +20,9 @@ pub(super) struct DrbRootCommand {
 
 #[derive(Subcommand)]
 pub(super) enum ReplCommand {
+    #[command(subcommand, about = "manage breakpoints", visible_aliases = &["b", "br", "bp", "break"])]
+    Breakpoint(BreakpointCommand),
+
     #[command(about = "continue execution", visible_aliases = &["cont", "c"])]
     Continue,
 
