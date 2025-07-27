@@ -50,9 +50,5 @@ pub enum DrbugError {
 #[macro_export]
 macro_rules! syscall_error {
     ($syscall:ident($($args:expr),* $(,)?)) => { $syscall($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!($syscall), e)) };
-}
-
-#[macro_export]
-macro_rules! ptrace_error {
-    ($ptrace_call:ident($($args:expr),* $(,)?)) => { ptrace::$ptrace_call($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!("ptrace::", $ptrace_call), e)) };
+    ($prefix:ident::$syscall:ident($($args:expr),* $(,)?)) => { $prefix::$syscall($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!($syscall), e)) };
 }

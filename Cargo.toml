@@ -17,7 +17,7 @@ derive_more = { version = "2.0.1", features = ["full"] }
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
 libc = "0.2.172"
 libdrbug = { path = "libdrbug" }
-nix = { git = "https://github.com/drmorr0/nix", branch = "drmorr/getfpregs", features = ["fs", "process", "ptrace", "signal"] }
+nix = { git = "https://github.com/drmorr0/nix", branch = "drmorr/getfpregs", features = ["fs", "personality", "process", "ptrace", "signal"] }
 paste = "1.0.15"
 rstest = "0.25.0"
 rustyline = "16.0.0"

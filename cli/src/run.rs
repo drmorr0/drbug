@@ -10,9 +10,9 @@ pub struct Args {
 }
 
 pub fn cmd(args: &Args) -> Empty {
-    println!("running program at {}", args.path);
-
     let proc = Process::launch(&args.path, Default::default())?;
+    println!("launched process `{}` with PID {}", args.path, proc.pid());
+
     let mut repl = Repl::new(proc)?;
     repl.start()
 }

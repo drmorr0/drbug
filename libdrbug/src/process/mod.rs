@@ -5,12 +5,16 @@ use std::io::Write;
 use std::ops::Drop;
 use std::os::fd::OwnedFd;
 
-use nix::sys::ptrace;
+use nix::sys::personality::Persona;
 use nix::sys::signal::{
     Signal,
     kill,
 };
 use nix::sys::wait::waitpid;
+use nix::sys::{
+    personality,
+    ptrace,
+};
 use nix::unistd::{
     ForkResult,
     Pid,
@@ -37,12 +41,12 @@ use crate::{
     DrbugError,
     DrbugResult,
     Empty,
-    ptrace_error,
     syscall_error,
 };
 
 #[derive(Default)]
 pub struct ProcessOptions {
+    pub disable_aslr: bool,     // should only use for testing
     pub start_unattached: bool, // use the negative here so the default does the right thing
     pub stdout: Option<OwnedFd>,
 }
@@ -75,7 +79,7 @@ impl Process {
 
     pub fn attach(pid_int: i32) -> DrbugResult<Self> {
         let pid = Pid::from_raw(pid_int);
-        ptrace_error!(attach(pid))?;
+        syscall_error!(ptrace::attach(pid))?;
         Self::new_then_wait(pid, Default::default(), false)
     }
 
@@ -85,9 +89,16 @@ impl Process {
         let path_cstring = CString::new(path)?;
         let fork_res = unsafe { syscall_error!(fork())? };
         let ForkResult::Parent { child } = fork_res else {
-            // in the child process, we can't just use `?`, since it won't get
-            // communicated back to the parent; instead we use the channel.
-            // Then we still return the error so the child process exits.
+            // This code runs in the child process, we can't just use `?`, since it won't get
+            // communicated back to the parent; instead we use the channel.  Then we still return
+            // the error so the child process exits.
+
+            if opts.disable_aslr {
+                let pers = syscall_error!(personality::get())?;
+                if !pers.contains(Persona::ADDR_NO_RANDOMIZE) {
+                    syscall_error!(personality::set(pers | Persona::ADDR_NO_RANDOMIZE))?;
+                }
+            }
 
             // The child process doesn't need the reader, so we close it
             channel.close_reader();
@@ -189,7 +200,7 @@ impl Process {
     }
 
     pub fn resume(&mut self) -> Empty {
-        ptrace_error!(cont(self.pid, None))?;
+        syscall_error!(ptrace::cont(self.pid, None))?;
         self.state = ProcessState::Running;
         Ok(())
     }

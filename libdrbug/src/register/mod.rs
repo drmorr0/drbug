@@ -27,7 +27,7 @@ use crate::{
     DrbugError,
     DrbugResult,
     Empty,
-    ptrace_error,
+    syscall_error,
 };
 
 #[derive(Debug)]
@@ -110,11 +110,11 @@ impl Registers {
     }
 
     pub(crate) fn load_all(&mut self) -> Empty {
-        self.data.regs = ptrace_error!(getregs(self.pid))?;
-        self.data.i387 = ptrace_error!(getfpregs(self.pid))?;
+        self.data.regs = syscall_error!(ptrace::getregs(self.pid))?;
+        self.data.i387 = syscall_error!(ptrace::getfpregs(self.pid))?;
         for (i, dr) in DEBUG_REGISTER_IDS.iter().enumerate() {
             let info = register_info_by_id(dr);
-            let val = ptrace_error!(read_user(self.pid, info.offset as AddressType))?;
+            let val = syscall_error!(ptrace::read_user(self.pid, info.offset as AddressType))?;
             self.data.u_debugreg[i] = val as u64;
         }
         Ok(())
@@ -122,16 +122,16 @@ impl Registers {
 
     #[allow(dead_code)] // will use this in a later chapter
     fn commit_gprs(&self) -> Empty {
-        ptrace_error!(setregs(self.pid, self.data.regs))
+        syscall_error!(ptrace::setregs(self.pid, self.data.regs))
     }
 
     fn commit_fprs(&self) -> Empty {
-        ptrace_error!(setfpregs(self.pid, self.data.i387))
+        syscall_error!(ptrace::setfpregs(self.pid, self.data.i387))
     }
 
     fn commit_user_area(&mut self, offset: usize, wide_val_bytes: &Byte128) -> Empty {
         let aligned_offset = offset & !0b111;
-        ptrace_error!(write_user(
+        syscall_error!(ptrace::write_user(
             self.pid,
             aligned_offset as AddressType,
             i64::from_le_bytes(wide_val_bytes[..8].try_into().unwrap()),
