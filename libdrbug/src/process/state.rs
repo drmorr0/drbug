@@ -28,6 +28,10 @@ impl ProcessState {
     pub fn is_terminated(&self) -> bool {
         matches!(self, ProcessState::Terminated { .. })
     }
+
+    pub fn is_trapped(&self) -> bool {
+        matches!(self, ProcessState::Stopped { signal: Some(Signal::SIGTRAP) })
+    }
 }
 
 impl From<WaitStatus> for ProcessState {
@@ -48,12 +52,12 @@ impl fmt::Display for ProcessState {
             ProcessState::Running => write!(f, "running"),
             ProcessState::Stopped { signal: maybe_signal } => {
                 if let Some(signal) = maybe_signal {
-                    write!(f, "paused by signal {signal}")
+                    write!(f, "paused by {signal}")
                 } else {
                     write!(f, "paused")
                 }
             },
-            ProcessState::Terminated { signal } => write!(f, "terminated with signal {signal}"),
+            ProcessState::Terminated { signal } => write!(f, "terminated with {signal}"),
             ProcessState::Unknown(ws) => write!(f, "unknown: wait status = {ws:?}"),
         }
     }

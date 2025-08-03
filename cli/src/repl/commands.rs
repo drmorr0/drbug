@@ -29,6 +29,9 @@ pub(super) enum ReplCommand {
     #[command(subcommand, about = "interact with registers", visible_aliases = &["reg"])]
     Register(RegisterCommand),
 
+    #[command(about ="step over a single instruction", visible_aliases = &["s", "st"])]
+    Step,
+
     #[command(about = "stop debugging", visible_aliases = &["exit", "q"])]
     Quit,
 }

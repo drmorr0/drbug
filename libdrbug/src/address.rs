@@ -4,6 +4,7 @@ use derive_more::{
     Add,
     Display,
     LowerHex,
+    Sub,
 };
 use libc::c_void;
 
@@ -12,7 +13,7 @@ use crate::{
     DrbugResult,
 };
 
-#[derive(Add, Debug, Display, Clone, Copy, Eq, Hash, LowerHex, PartialEq)]
+#[derive(Add, Debug, Display, Clone, Copy, Eq, Hash, LowerHex, PartialEq, Sub)]
 #[display("0x{_0:016x}")]
 pub struct VirtAddr(pub u64);
 
@@ -21,6 +22,10 @@ impl VirtAddr {
     // expect it to work
     pub unsafe fn into_void_ptr(&self) -> *mut c_void {
         self.0 as *mut c_void
+    }
+
+    pub fn decrement(&mut self) {
+        self.0 -= 1;
     }
 }
 

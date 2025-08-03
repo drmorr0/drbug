@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::address::VirtAddr;
 use crate::util::copy_bytes;
 use crate::{
     Byte64,
@@ -80,6 +81,11 @@ impl fmt::Display for RegisterValue {
     }
 }
 
+impl From<VirtAddr> for RegisterValue {
+    fn from(addr: VirtAddr) -> Self {
+        RegisterValue::U64(addr.0)
+    }
+}
 
 pub trait RegisterValueTarget {
     fn from_register_value(value: &RegisterValue) -> DrbugResult<RegisterValue>;

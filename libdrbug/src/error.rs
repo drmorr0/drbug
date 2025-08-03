@@ -40,7 +40,7 @@ pub enum DrbugError {
     #[error("pipe closed")]
     PipeClosed,
 
-    #[error("{1} failed (errno: {0})")]
+    #[error("{0} failed ({1})")]
     SyscallFailed(&'static str, nix::Error),
 
     #[error("conversion from {0} to {1} failed")]
@@ -50,5 +50,5 @@ pub enum DrbugError {
 #[macro_export]
 macro_rules! syscall_error {
     ($syscall:ident($($args:expr),* $(,)?)) => { $syscall($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!($syscall), e)) };
-    ($prefix:ident::$syscall:ident($($args:expr),* $(,)?)) => { $prefix::$syscall($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!($syscall), e)) };
+    ($prefix:ident::$syscall:ident($($args:expr),* $(,)?)) => { $prefix::$syscall($($args),*).map_err(|e| DrbugError::SyscallFailed(stringify!($prefix::$syscall), e)) };
 }

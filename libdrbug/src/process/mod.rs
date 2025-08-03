@@ -23,7 +23,7 @@ use nix::unistd::{
     fork,
 };
 
-use self::state::ProcessState;
+pub use self::state::ProcessState;
 use crate::address::VirtAddr;
 use crate::breakpoint::{
     BreakList,
@@ -187,7 +187,7 @@ impl Process {
 
         let site = BreakpointSite::new(self.pid, addr);
         let id = site.id();
-        self.breakpoint_sites.add(site.clone());
+        self.breakpoint_sites.add(site);
         Ok(id)
     }
 
@@ -200,9 +200,42 @@ impl Process {
     }
 
     pub fn resume(&mut self) -> Empty {
+        let pc = self.get_pc()?;
+        if let Some(mut bp) = self.breakpoint_sites.get_by_addr(&pc)
+            && bp.enabled()
+        {
+            bp.disable()?;
+            syscall_error!(ptrace::step(self.pid, None))?;
+            syscall_error!(waitpid(self.pid, None))?;
+            bp.enable()?;
+        }
+
         syscall_error!(ptrace::cont(self.pid, None))?;
         self.state = ProcessState::Running;
         Ok(())
+    }
+
+    pub fn set_pc(&mut self, addr: VirtAddr) -> Empty {
+        let rip_info = register_info_by_id(&RegisterId::rip);
+        self.registers.write(rip_info, addr.into())
+    }
+
+    pub fn step_instruction(&mut self) -> DrbugResult<ProcessState> {
+        let pc = self.get_pc()?;
+        let mut bp_to_reenable = self.breakpoint_sites.get_by_addr(&pc);
+        if let Some(ref mut bp) = bp_to_reenable
+            && bp.enabled()
+        {
+            bp.disable()?;
+        }
+
+        syscall_error!(ptrace::step(self.pid, None))?;
+        let state = self.wait_on_signal()?;
+
+        if let Some(mut bp) = bp_to_reenable {
+            bp.enable()?;
+        }
+        Ok(state)
     }
 
     pub fn wait_on_signal(&mut self) -> DrbugResult<ProcessState> {
@@ -211,6 +244,12 @@ impl Process {
 
         if self.attached && self.state.is_stopped() {
             self.registers.load_all()?;
+            let mut pc = self.get_pc()?;
+            pc.decrement();
+
+            if self.state.is_trapped() && self.breakpoint_sites.breakable_enabled_at(&pc) {
+                self.set_pc(pc)?;
+            }
         }
         Ok(self.state)
     }

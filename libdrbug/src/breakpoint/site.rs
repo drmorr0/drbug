@@ -1,3 +1,5 @@
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::atomic::{
     AtomicUsize,
     Ordering,
@@ -22,7 +24,7 @@ pub struct BreakpointSite {
     id: usize,
     pid: Pid,
     addr: VirtAddr,
-    is_enabled: bool,
+    is_enabled: Rc<Cell<bool>>,
     saved_data: u8,
 }
 
@@ -33,13 +35,13 @@ impl BreakpointSite {
             id: next_id,
             pid,
             addr,
-            is_enabled: false,
+            is_enabled: Rc::new(Cell::new(false)),
             saved_data: 0,
         }
     }
 
     pub fn enable(&mut self) -> Empty {
-        if self.is_enabled {
+        if self.is_enabled.get() {
             return Ok(());
         }
 
@@ -52,12 +54,12 @@ impl BreakpointSite {
 
         syscall_error!(ptrace::write(self.pid, ptr, data_with_int3))?;
 
-        self.is_enabled = true;
+        self.is_enabled.set(true);
         Ok(())
     }
 
     pub fn disable(&mut self) -> Empty {
-        if !self.is_enabled {
+        if !self.is_enabled.get() {
             return Ok(());
         }
 
@@ -69,7 +71,7 @@ impl BreakpointSite {
 
         syscall_error!(ptrace::write(self.pid, ptr, original_data))?;
 
-        self.is_enabled = false;
+        self.is_enabled.set(false);
         Ok(())
     }
 }
@@ -80,7 +82,7 @@ impl Breakable for BreakpointSite {
     }
 
     fn enabled(&self) -> bool {
-        self.is_enabled
+        self.is_enabled.get()
     }
 
     fn id(&self) -> usize {

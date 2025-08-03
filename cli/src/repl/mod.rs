@@ -58,15 +58,24 @@ impl Repl {
             ReplCommand::Continue => {
                 self.proc.resume()?;
                 let status = self.proc.wait_on_signal()?;
-                let pc = self.proc.get_pc()?;
-                println!("process {}: {status} at {pc}", self.proc.pid());
+                self.print_stop_reason(status)?;
             },
             ReplCommand::Register(cmd) => register::handle(cmd, &mut self.proc)?,
+            ReplCommand::Step => {
+                let status = self.proc.step_instruction()?;
+                self.print_stop_reason(status)?;
+            },
             ReplCommand::Quit => {
                 self.running = false;
             },
         }
 
+        Ok(())
+    }
+
+    fn print_stop_reason(&self, status: ProcessState) -> Empty {
+        let pc = self.proc.get_pc()?;
+        println!("process {}: {status} at {pc}", self.proc.pid());
         Ok(())
     }
 }

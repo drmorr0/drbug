@@ -58,7 +58,7 @@ fn handle_delete(proc: &mut Process, id: usize) -> Empty {
 }
 
 fn handle_disable(proc: &mut Process, id: usize) -> Empty {
-    if let Some(site) = proc.breakpoint_sites_mut().get_mut(&id) {
+    if let Some(mut site) = proc.breakpoint_sites_mut().get(&id) {
         site.disable()?;
         println!("breakpoint {id} at {:#x} disabled", site.addr());
     } else {
@@ -68,7 +68,7 @@ fn handle_disable(proc: &mut Process, id: usize) -> Empty {
 }
 
 fn handle_enable(proc: &mut Process, id: usize) -> Empty {
-    if let Some(site) = proc.breakpoint_sites_mut().get_mut(&id) {
+    if let Some(mut site) = proc.breakpoint_sites_mut().get(&id) {
         site.enable()?;
         println!("breakpoint {id} at {:#x} enabled", site.addr());
     } else {
@@ -83,13 +83,8 @@ fn handle_list(proc: &Process) {
         println!("no breakpoints set");
     } else {
         println!("current breakpoints:");
-        for (_, site) in sites.iter() {
-            println!(
-                "{}: address = {:#x}, {}",
-                site.id(),
-                site.addr(),
-                if site.enabled() { "enabled" } else { "disabled" }
-            );
+        for (id, site) in sites.iter() {
+            println!("{id}: address = {:#x}, {}", site.addr(), if site.enabled() { "enabled" } else { "disabled" });
         }
     }
 }
@@ -98,6 +93,6 @@ fn handle_set(proc: &mut Process, loc: VirtAddr) -> Empty {
     let id = proc.create_breakpoint_site(loc)?;
 
     // We just created the breakpoint with this ID so it must exist
-    proc.breakpoint_sites_mut().get_mut(&id).unwrap().enable()?;
+    proc.breakpoint_sites_mut().get(&id).unwrap().enable()?;
     Ok(())
 }

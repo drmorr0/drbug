@@ -12,7 +12,7 @@ pub struct BreakList<T: Breakable> {
     rindex: HashMap<VirtAddr, usize>,
 }
 
-impl<T: Breakable> BreakList<T> {
+impl<T: Breakable + Clone> BreakList<T> {
     pub(crate) fn new() -> Self {
         BreakList { breaks: HashMap::new(), rindex: HashMap::new() }
     }
@@ -26,20 +26,12 @@ impl<T: Breakable> BreakList<T> {
         self.get_by_addr(addr).is_some_and(|b| b.enabled())
     }
 
-    pub fn get(&self, id: &usize) -> Option<&T> {
-        self.breaks.get(id)
+    pub fn get(&self, id: &usize) -> Option<T> {
+        self.breaks.get(id).cloned()
     }
 
-    pub fn get_mut(&mut self, id: &usize) -> Option<&mut T> {
-        self.breaks.get_mut(id)
-    }
-
-    pub fn get_by_addr(&self, addr: &VirtAddr) -> Option<&T> {
-        self.rindex.get(addr).and_then(|ind| self.breaks.get(ind))
-    }
-
-    pub fn get_by_addr_mut(&mut self, addr: &VirtAddr) -> Option<&mut T> {
-        self.rindex.get(addr).and_then(|ind| self.breaks.get_mut(ind))
+    pub fn get_by_addr(&self, addr: &VirtAddr) -> Option<T> {
+        self.rindex.get(addr).and_then(|ind| self.breaks.get(ind).cloned())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -48,10 +40,6 @@ impl<T: Breakable> BreakList<T> {
 
     pub fn iter(&self) -> hash_map::Iter<usize, T> {
         self.breaks.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> hash_map::IterMut<usize, T> {
-        self.breaks.iter_mut()
     }
 
     pub fn len(&self) -> usize {

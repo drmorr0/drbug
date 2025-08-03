@@ -19,6 +19,7 @@ pub mod prelude {
     pub use crate::process::{
         Process,
         ProcessOptions,
+        ProcessState,
     };
     pub use crate::register::info::{
         RegisterFormat,
