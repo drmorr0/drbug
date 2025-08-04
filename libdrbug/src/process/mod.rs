@@ -180,15 +180,14 @@ impl Process {
         &mut self.breakpoint_sites
     }
 
-    pub fn create_breakpoint_site(&mut self, addr: VirtAddr) -> DrbugResult<usize> {
+    pub fn create_breakpoint_site(&mut self, addr: VirtAddr) -> DrbugResult<BreakpointSite> {
         if let Some(site) = self.breakpoint_sites.get_by_addr(&addr) {
             return Err(DrbugError::BreakpointSiteExists(site.id(), addr));
         }
 
         let site = BreakpointSite::new(self.pid, addr);
-        let id = site.id();
-        self.breakpoint_sites.add(site);
-        Ok(id)
+        self.breakpoint_sites.add(site.clone());
+        Ok(site)
     }
 
     pub fn get_pc(&self) -> DrbugResult<VirtAddr> {

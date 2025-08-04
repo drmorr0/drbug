@@ -15,4 +15,6 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 assertables = { workspace = true }
+elf = { workspace = true }
+regex = { workspace = true }
 rstest = { workspace = true }

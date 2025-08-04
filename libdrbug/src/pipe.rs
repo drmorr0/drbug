@@ -20,6 +20,11 @@ pub struct Pipe {
 }
 
 impl Pipe {
+    #[cfg(test)]
+    pub fn new() -> DrbugResult<Self> {
+        Self::make_pipe(false)
+    }
+
     pub fn new_exec_safe() -> DrbugResult<Self> {
         Self::make_pipe(true)
     }

@@ -52,7 +52,7 @@ fn handle_delete(proc: &mut Process, id: usize) -> Empty {
     if proc.breakpoint_sites().get(&id).is_none() {
         println!("breakpoint {id} not found");
     }
-    proc.breakpoint_sites_mut().remove(&id);
+    proc.breakpoint_sites_mut().remove(&id)?;
     println!("breakpoint {id} deleted");
     Ok(())
 }
@@ -90,9 +90,6 @@ fn handle_list(proc: &Process) {
 }
 
 fn handle_set(proc: &mut Process, loc: VirtAddr) -> Empty {
-    let id = proc.create_breakpoint_site(loc)?;
-
-    // We just created the breakpoint with this ID so it must exist
-    proc.breakpoint_sites_mut().get(&id).unwrap().enable()?;
+    proc.create_breakpoint_site(loc)?.enable()?;
     Ok(())
 }

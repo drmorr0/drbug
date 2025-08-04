@@ -25,7 +25,7 @@ pub struct BreakpointSite {
     pid: Pid,
     addr: VirtAddr,
     is_enabled: Rc<Cell<bool>>,
-    saved_data: u8,
+    saved_data: Rc<Cell<u8>>,
 }
 
 impl BreakpointSite {
@@ -36,29 +36,17 @@ impl BreakpointSite {
             pid,
             addr,
             is_enabled: Rc::new(Cell::new(false)),
-            saved_data: 0,
+            saved_data: Rc::new(Cell::new(0)),
         }
     }
+}
 
-    pub fn enable(&mut self) -> Empty {
-        if self.is_enabled.get() {
-            return Ok(());
-        }
-
-        // SAFETY: presumably we're only setting breakpoints on program locations
-        let ptr = unsafe { self.addr.into_void_ptr() };
-
-        let data = syscall_error!(ptrace::read(self.pid, ptr))? as u64;
-        self.saved_data = (data & 0xff) as u8;
-        let data_with_int3 = ((data & !0xff) | INT3) as i64;
-
-        syscall_error!(ptrace::write(self.pid, ptr, data_with_int3))?;
-
-        self.is_enabled.set(true);
-        Ok(())
+impl Breakable for BreakpointSite {
+    fn addr(&self) -> VirtAddr {
+        self.addr
     }
 
-    pub fn disable(&mut self) -> Empty {
+    fn disable(&mut self) -> Empty {
         if !self.is_enabled.get() {
             return Ok(());
         }
@@ -67,18 +55,30 @@ impl BreakpointSite {
         let ptr = unsafe { self.addr.into_void_ptr() };
 
         let data_with_int3 = syscall_error!(ptrace::read(self.pid, ptr))? as u64;
-        let original_data = ((data_with_int3 & !0xff) | self.saved_data as u64) as i64;
+        let original_data = ((data_with_int3 & !0xff) | self.saved_data.get() as u64) as i64;
 
         syscall_error!(ptrace::write(self.pid, ptr, original_data))?;
 
         self.is_enabled.set(false);
         Ok(())
     }
-}
 
-impl Breakable for BreakpointSite {
-    fn addr(&self) -> VirtAddr {
-        self.addr
+    fn enable(&mut self) -> Empty {
+        if self.is_enabled.get() {
+            return Ok(());
+        }
+
+        // SAFETY: presumably we're only setting breakpoints on program locations
+        let ptr = unsafe { self.addr.into_void_ptr() };
+
+        let data = syscall_error!(ptrace::read(self.pid, ptr))? as u64;
+        self.saved_data.set((data & 0xff) as u8);
+        let data_with_int3 = ((data & !0xff) | INT3) as i64;
+
+        syscall_error!(ptrace::write(self.pid, ptr, data_with_int3))?;
+
+        self.is_enabled.set(true);
+        Ok(())
     }
 
     fn enabled(&self) -> bool {

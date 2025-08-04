@@ -4,6 +4,7 @@ use std::collections::{
 };
 
 use super::Breakable;
+use crate::Empty;
 use crate::address::VirtAddr;
 
 #[derive(Debug)]
@@ -46,11 +47,15 @@ impl<T: Breakable + Clone> BreakList<T> {
         self.breaks.len()
     }
 
-    pub fn remove(&mut self, id: &usize) {
-        self.breaks.remove(id).map(|b| self.rindex.remove(&b.addr()));
+    pub fn remove(&mut self, id: &usize) -> Empty {
+        if let Some(mut bp) = self.breaks.remove(id) {
+            bp.disable()?;
+            self.rindex.remove(&bp.addr());
+        }
+        Ok(())
     }
 
-    pub fn remove_by_addr(&mut self, addr: &VirtAddr) {
-        self.rindex.remove(addr).map(|ind| self.breaks.remove(&ind));
+    pub fn remove_by_addr(&mut self, addr: &VirtAddr) -> Empty {
+        if let Some(ind) = self.rindex.remove(addr) { self.remove(&ind) } else { Ok(()) }
     }
 }
