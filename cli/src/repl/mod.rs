@@ -1,5 +1,6 @@
 mod breakpoint;
 mod commands;
+mod memory;
 mod register;
 
 use anyhow::anyhow;
@@ -60,6 +61,7 @@ impl Repl {
                 let status = self.proc.wait_on_signal()?;
                 self.print_stop_reason(status)?;
             },
+            ReplCommand::Memory(cmd) => memory::handle(cmd, &mut self.proc)?,
             ReplCommand::Register(cmd) => register::handle(cmd, &mut self.proc)?,
             ReplCommand::Step => {
                 let status = self.proc.step_instruction()?;

@@ -1,3 +1,5 @@
+mod breakpoint;
+mod memory;
 mod state;
 
 use std::ffi::CString;
@@ -172,30 +174,24 @@ impl Process {
         Self::new_then_wait(child, opts, true)
     }
 
-    pub fn breakpoint_sites(&self) -> &BreakList<BreakpointSite> {
-        &self.breakpoint_sites
-    }
-
-    pub fn breakpoint_sites_mut(&mut self) -> &mut BreakList<BreakpointSite> {
-        &mut self.breakpoint_sites
-    }
-
-    pub fn create_breakpoint_site(&mut self, addr: VirtAddr) -> DrbugResult<BreakpointSite> {
-        if let Some(site) = self.breakpoint_sites.get_by_addr(&addr) {
-            return Err(DrbugError::BreakpointSiteExists(site.id(), addr));
-        }
-
-        let site = BreakpointSite::new(self.pid, addr);
-        self.breakpoint_sites.add(site.clone());
-        Ok(site)
-    }
-
     pub fn get_pc(&self) -> DrbugResult<VirtAddr> {
         let rip_info = register_info_by_id(&RegisterId::rip);
         self.registers.read(rip_info).map(|v| match v {
             RegisterValue::U64(rip) => VirtAddr(rip),
             _ => panic!("should never happen"),
         })
+    }
+
+    pub fn get_registers(&self) -> &Registers {
+        &self.registers
+    }
+
+    pub fn get_registers_mut(&mut self) -> &mut Registers {
+        &mut self.registers
+    }
+
+    pub fn pid(&self) -> Pid {
+        self.pid
     }
 
     pub fn resume(&mut self) -> Empty {
@@ -217,6 +213,10 @@ impl Process {
     pub fn set_pc(&mut self, addr: VirtAddr) -> Empty {
         let rip_info = register_info_by_id(&RegisterId::rip);
         self.registers.write(rip_info, addr.into())
+    }
+
+    pub fn state(&self) -> ProcessState {
+        self.state
     }
 
     pub fn step_instruction(&mut self) -> DrbugResult<ProcessState> {
@@ -251,22 +251,6 @@ impl Process {
             }
         }
         Ok(self.state)
-    }
-
-    pub fn get_registers(&self) -> &Registers {
-        &self.registers
-    }
-
-    pub fn get_registers_mut(&mut self) -> &mut Registers {
-        &mut self.registers
-    }
-
-    pub fn pid(&self) -> Pid {
-        self.pid
-    }
-
-    pub fn state(&self) -> ProcessState {
-        self.state
     }
 }
 

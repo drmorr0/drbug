@@ -4,6 +4,7 @@ use clap::{
 };
 
 use super::breakpoint::*;
+use super::memory::*;
 use super::register::*;
 
 #[derive(Parser)]
@@ -25,6 +26,9 @@ pub(super) enum ReplCommand {
 
     #[command(about = "continue execution", visible_aliases = &["cont", "c"])]
     Continue,
+
+    #[command(subcommand, about = "read and write to memory locations", visible_aliases = &["mem"])]
+    Memory(MemoryCommand),
 
     #[command(subcommand, about = "interact with registers", visible_aliases = &["reg"])]
     Register(RegisterCommand),

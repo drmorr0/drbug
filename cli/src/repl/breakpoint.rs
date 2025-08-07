@@ -26,11 +26,13 @@ pub(super) enum BreakpointCommand {
 
 #[derive(Args)]
 pub(super) struct BpArgs {
+    #[arg(long_help = "id of breakpoint to operate on")]
     id: usize,
 }
 
 #[derive(Args)]
 pub(super) struct BpSetArgs {
+    #[arg(long_help = "memory address to break on")]
     location: VirtAddr,
 }
 

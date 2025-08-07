@@ -18,12 +18,16 @@ pub(super) enum RegisterCommand {
 
 #[derive(Args)]
 pub(super) struct RegReadArgs {
+    #[arg(long_help = "register name to read")]
     regs: Option<String>,
 }
 
 #[derive(Args, Clone)]
 pub(super) struct RegWriteArgs {
+    #[arg(long_help = "register name to write")]
     reg: String,
+
+    #[arg(long_help = "value to write to the register")]
     value: String,
 }
 

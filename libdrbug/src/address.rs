@@ -24,6 +24,10 @@ impl VirtAddr {
         self.0 as *mut c_void
     }
 
+    pub fn add(&self, size: usize) -> Self {
+        Self(self.0 + size as u64)
+    }
+
     pub fn decrement(&mut self) {
         self.0 -= 1;
     }

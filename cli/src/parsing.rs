@@ -7,11 +7,26 @@ use paste::paste;
 
 pub fn parse_for_register(info: &RegisterInfo, val_str: &str) -> anyhow::Result<RegisterValue> {
     match info.format {
-        RegisterFormat::Uint => parse_uint(val_str, info.size),
-        RegisterFormat::DoubleFloat => parse_double(val_str),
-        RegisterFormat::LongDouble => parse_long_double(val_str),
-        RegisterFormat::Vector => parse_vector(val_str, info.size),
+        RegisterFormat::Uint => parse_uint_reg(val_str, info.size),
+        RegisterFormat::DoubleFloat => parse_double_reg(val_str),
+        RegisterFormat::LongDouble => parse_long_double_reg(val_str),
+        RegisterFormat::Vector => parse_vector_reg(val_str, info.size),
     }
+}
+
+pub fn parse_bytes(input: &str) -> anyhow::Result<Vec<u8>> {
+    let trimmed_input = input.trim();
+    let len = trimmed_input.len();
+    if trimmed_input.get(..1) != Some("[") || trimmed_input.get(len - 1..) != Some("]") {
+        bail!("missing opening/closing brackets");
+    }
+
+    trimmed_input
+        .get(1..len - 1)
+        .ok_or(anyhow!("parse error: {}", trimmed_input))?
+        .split(",")
+        .map(parse_u8)
+        .collect::<anyhow::Result<Vec<u8>>>()
 }
 
 macro_rules! make_parse_uint {
@@ -38,7 +53,7 @@ make_parse_uint!(u16);
 make_parse_uint!(u32);
 make_parse_uint!(u64);
 
-pub(crate) fn parse_uint(input: &str, size: usize) -> anyhow::Result<RegisterValue> {
+pub(crate) fn parse_uint_reg(input: &str, size: usize) -> anyhow::Result<RegisterValue> {
     Ok(match size {
         1 => RegisterValue::U8(parse_u8(input)?),
         2 => RegisterValue::U16(parse_u16(input)?),
@@ -48,28 +63,16 @@ pub(crate) fn parse_uint(input: &str, size: usize) -> anyhow::Result<RegisterVal
     })
 }
 
-pub(crate) fn parse_double(input: &str) -> anyhow::Result<RegisterValue> {
+pub(crate) fn parse_double_reg(input: &str) -> anyhow::Result<RegisterValue> {
     Ok(RegisterValue::F64(input.trim().parse::<f64>()?))
 }
 
-pub(crate) fn parse_long_double(_input: &str) -> anyhow::Result<RegisterValue> {
+pub(crate) fn parse_long_double_reg(_input: &str) -> anyhow::Result<RegisterValue> {
     bail!("long double unsupported");
 }
 
-pub(crate) fn parse_vector(input: &str, size: usize) -> anyhow::Result<RegisterValue> {
-    let trimmed_input = input.trim();
-    let len = trimmed_input.len();
-    if trimmed_input.get(..1) != Some("[") || trimmed_input.get(len - 1..) != Some("]") {
-        bail!("missing opening/closing brackets");
-    }
-
-    let bytes = trimmed_input
-        .get(1..len - 1)
-        .ok_or(anyhow!("parse error: {}", trimmed_input))?
-        .split(",")
-        .map(parse_u8)
-        .collect::<anyhow::Result<Vec<u8>>>()?;
-
+pub(crate) fn parse_vector_reg(input: &str, size: usize) -> anyhow::Result<RegisterValue> {
+    let bytes = parse_bytes(input)?;
     Ok(match size {
         8 => RegisterValue::B64(
             bytes
@@ -101,7 +104,7 @@ mod tests {
     #[case("0x2a2a2a2a", 4, RegisterValue::U32(707406378))]
     #[case("0x2a2a2a2a2a2a2a2a", 8, RegisterValue::U64(3038287259199220266))]
     fn test_parse_uint(#[case] input: &str, #[case] size: usize, #[case] expected: RegisterValue) {
-        assert_eq!(parse_uint(input, size).unwrap(), expected);
+        assert_eq!(parse_uint_reg(input, size).unwrap(), expected);
     }
 
     #[rstest]
@@ -110,7 +113,7 @@ mod tests {
     #[case("0xzzzz", 1)]
     #[case("0x2a", 5)]
     fn test_parse_uint_fails(#[case] input: &str, #[case] size: usize) {
-        assert_err!(parse_uint(input, size));
+        assert_err!(parse_uint_reg(input, size));
     }
 
     #[rstest]
@@ -120,6 +123,6 @@ mod tests {
         RegisterValue::B128([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     )]
     fn test_parse_vector(#[case] input: &str, #[case] size: usize, #[case] expected: RegisterValue) {
-        assert_eq!(parse_vector(input, size).unwrap(), expected);
+        assert_eq!(parse_vector_reg(input, size).unwrap(), expected);
     }
 }
