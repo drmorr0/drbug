@@ -16,4 +16,9 @@ path = "src/loop.rs"
 name = "hello"
 path = "src/hello.rs"
 
+[[bin]]
+name = "memory"
+path = "src/memory.rs"
+
 [dependencies]
+nix = { workspace = true }

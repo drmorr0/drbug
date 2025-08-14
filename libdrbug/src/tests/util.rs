@@ -6,7 +6,13 @@ use elf::endian::AnyEndian;
 use nix::unistd::Pid;
 use regex::Regex;
 
+use crate::DrbugResult;
 use crate::address::VirtAddr;
+
+pub(crate) fn addr_from_bytes(data: &[u8]) -> DrbugResult<VirtAddr> {
+    let ptr = u64::from_str_radix(&str::from_utf8(data).unwrap(), 16)?;
+    Ok(VirtAddr(ptr))
+}
 
 pub(crate) fn get_entry_point_offset(path: &Path) -> u64 {
     let file_data = std::fs::read(path).unwrap();

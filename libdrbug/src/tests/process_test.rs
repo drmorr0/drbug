@@ -31,13 +31,14 @@ fn get_process_status_char(pid: Pid) -> char {
 }
 
 #[rstest]
-fn test_attach_success() {
+fn test_attach_success() -> Empty {
     let target = Process::launch(LOOP_PATH, ProcessOptions { start_unattached: true, ..Default::default() }).unwrap();
     // if the result from Process::attach is dropped, then it auto-ptrace-detaches, which starts
     // the child process up again, which is _SUPER_ annoying, so we have to make sure it doesn't
     // drop until after we do our assertion
-    let _proc = Process::attach(target.pid().into()).unwrap();
+    let _proc = Process::attach(target.pid().into())?;
     assert_eq!(get_process_status_char(target.pid()), 't'); // 't' means paused for tracing
+    Ok(())
 }
 
 #[rstest]
@@ -46,9 +47,9 @@ fn test_attach_invalid_pid() {
 }
 
 #[rstest]
-fn test_launch_success() {
-    let proc = Process::launch(LOOP_PATH, Default::default()).unwrap();
-    process_exists(proc.pid()).unwrap();
+fn test_launch_success() -> Empty {
+    let proc = Process::launch(LOOP_PATH, Default::default())?;
+    process_exists(proc.pid())
 }
 
 #[rstest]
@@ -57,26 +58,30 @@ fn test_launch_no_such_program() {
 }
 
 #[rstest]
-fn test_resume_success_launch() {
-    let mut proc = Process::launch(LOOP_PATH, Default::default()).unwrap();
-    proc.resume().unwrap();
+fn test_resume_success_launch() -> Empty {
+    let mut proc = Process::launch(LOOP_PATH, Default::default())?;
+    proc.resume()?;
     let status_char = get_process_status_char(proc.pid());
     assert_contains!(vec!['R', 'S'], &status_char); // R = running, S = sleeping
+    Ok(())
 }
 
 #[rstest]
-fn test_resume_success_attach() {
-    let target = Process::launch(LOOP_PATH, ProcessOptions { start_unattached: true, ..Default::default() }).unwrap();
-    let mut proc = Process::attach(target.pid().into()).unwrap();
-    proc.resume().unwrap();
+fn test_resume_success_attach() -> Empty {
+    let target = Process::launch(LOOP_PATH, ProcessOptions { start_unattached: true, ..Default::default() })?;
+    let mut proc = Process::attach(target.pid().into())?;
+    proc.resume()?;
     let status_char = get_process_status_char(proc.pid());
     assert_contains!(vec!['R', 'S'], &status_char); // R = running, S = sleeping
+    Ok(())
 }
 
 #[rstest]
-fn test_resume_process_terminated() {
-    let mut proc = Process::launch("true", Default::default()).unwrap();
-    proc.resume().unwrap();
-    proc.wait_on_signal().unwrap();
+fn test_resume_process_terminated() -> Empty {
+    let mut proc = Process::launch("true", Default::default())?;
+    proc.resume()?;
+    proc.wait_on_signal()?;
     assert_err!(proc.resume());
+
+    Ok(())
 }
