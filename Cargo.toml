@@ -16,6 +16,7 @@ assertables = "9.8.0"
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
 derive_more = { version = "2.0.1", features = ["full"] }
 elf = "0.8.0"  # TODO: remove in Chapter 11
+iced-x86 = "1.21.0"
 itertools = "0.14.0"
 libc = "0.2.172"
 libdrbug = { path = "libdrbug" }

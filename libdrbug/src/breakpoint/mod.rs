@@ -12,4 +12,5 @@ pub trait Breakable {
     fn enable(&mut self) -> Empty;
     fn enabled(&self) -> bool;
     fn id(&self) -> usize;
+    fn orig_data(&self) -> u8;
 }

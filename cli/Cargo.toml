@@ -10,6 +10,7 @@ readme.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+iced-x86 = { workspace = true }
 itertools = { workspace = true }
 libdrbug = { workspace = true }
 paste = { workspace = true }

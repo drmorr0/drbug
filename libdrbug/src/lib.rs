@@ -1,6 +1,7 @@
 #[allow(clippy::missing_safety_doc)]
 mod address;
 mod breakpoint;
+mod disassembly;
 mod error;
 mod pipe;
 mod process;
@@ -16,6 +17,7 @@ type Byte128 = [u8; 16];
 pub mod prelude {
     pub use crate::address::VirtAddr;
     pub use crate::breakpoint::Breakable;
+    pub use crate::disassembly::Disassembler;
     pub use crate::process::{
         Process,
         ProcessOptions,

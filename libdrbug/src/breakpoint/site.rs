@@ -88,4 +88,8 @@ impl Breakable for BreakpointSite {
     fn id(&self) -> usize {
         self.id
     }
+
+    fn orig_data(&self) -> u8 {
+        self.saved_data.get()
+    }
 }

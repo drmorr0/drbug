@@ -1,5 +1,6 @@
 mod breakpoint;
 mod commands;
+mod disassemble;
 mod memory;
 mod register;
 
@@ -10,6 +11,7 @@ use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
 
 use self::commands::*;
+use self::disassemble::print_disassembly;
 use crate::Empty;
 
 pub struct Repl {
@@ -61,6 +63,7 @@ impl Repl {
                 let status = self.proc.wait_on_signal()?;
                 self.print_stop_reason(status)?;
             },
+            ReplCommand::Disassemble(args) => print_disassembly(&mut self.proc, args.addr, args.instr_count)?,
             ReplCommand::Memory(cmd) => memory::handle(cmd, &mut self.proc)?,
             ReplCommand::Register(cmd) => register::handle(cmd, &mut self.proc)?,
             ReplCommand::Step => {

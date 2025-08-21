@@ -1,4 +1,5 @@
 use std::collections::{
+    BTreeMap,
     HashMap,
     hash_map,
 };
@@ -10,12 +11,12 @@ use crate::address::VirtAddr;
 #[derive(Debug)]
 pub struct BreakList<T: Breakable> {
     breaks: HashMap<usize, T>,
-    rindex: HashMap<VirtAddr, usize>,
+    rindex: BTreeMap<VirtAddr, usize>,
 }
 
 impl<T: Breakable + Clone> BreakList<T> {
     pub(crate) fn new() -> Self {
-        BreakList { breaks: HashMap::new(), rindex: HashMap::new() }
+        BreakList { breaks: HashMap::new(), rindex: BTreeMap::new() }
     }
 
     pub fn add(&mut self, b: T) {
@@ -33,6 +34,13 @@ impl<T: Breakable + Clone> BreakList<T> {
 
     pub fn get_by_addr(&self, addr: &VirtAddr) -> Option<T> {
         self.rindex.get(addr).and_then(|ind| self.breaks.get(ind).cloned())
+    }
+
+    pub fn get_in_region(&self, low: &VirtAddr, high: &VirtAddr) -> Vec<T> {
+        self.rindex
+            .range(low..=high)
+            .map(|(_, ind)| self.breaks.get(ind).unwrap().clone())
+            .collect()
     }
 
     pub fn is_empty(&self) -> bool {

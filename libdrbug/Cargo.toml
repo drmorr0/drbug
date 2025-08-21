@@ -9,6 +9,7 @@ readme.workspace = true
 
 [dependencies]
 derive_more = { workspace = true }
+iced-x86 = { workspace = true }
 libc = { workspace = true }
 nix = { workspace = true }
 thiserror = { workspace = true }

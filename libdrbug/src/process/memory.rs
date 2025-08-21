@@ -9,6 +9,7 @@ use nix::sys::uio::{
 
 use super::Process;
 use crate::address::VirtAddr;
+use crate::breakpoint::Breakable;
 use crate::{
     DrbugError,
     DrbugResult,
@@ -38,6 +39,21 @@ impl Process {
 
         syscall_error!(process_vm_readv(self.pid, &mut [local_iov], &remote_iovs))?;
         Ok(buf)
+    }
+
+    pub fn read_memory_without_traps(&self, addr: VirtAddr, size: usize) -> DrbugResult<Vec<u8>> {
+        let mut data = self.read_memory(addr, size)?;
+        let sites = self.breakpoint_sites.get_in_region(&addr, &addr.add(size));
+
+        // Fix all the `int3` instructions we stuck in
+        for site in sites {
+            if !site.enabled() {
+                continue;
+            }
+            let offset = site.addr().delta(addr).unwrap();
+            data[offset] = site.orig_data();
+        }
+        Ok(data)
     }
 
     pub fn write_memory(&mut self, addr: VirtAddr, data: &[u8]) -> Empty {

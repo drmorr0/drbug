@@ -4,6 +4,7 @@ use clap::{
 };
 
 use super::breakpoint::*;
+use super::disassemble::*;
 use super::memory::*;
 use super::register::*;
 
@@ -26,6 +27,9 @@ pub(super) enum ReplCommand {
 
     #[command(about = "continue execution", visible_aliases = &["cont", "c"])]
     Continue,
+
+    #[command(about = "disassemble machine code to assembly", visible_aliases = &["dis"])]
+    Disassemble(DisassembleArgs),
 
     #[command(subcommand, about = "read and write to memory locations", visible_aliases = &["mem"])]
     Memory(MemoryCommand),
